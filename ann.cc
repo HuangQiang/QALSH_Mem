@@ -91,7 +91,6 @@ int qalsh_plus(						// k-NN search of qalsh+
 	int   kd_leaf_size,					// leaf size of kd-tree
 	int   L,							// number of projection (drusilla)
 	int   M,							// number of candidates (drusilla)
-	int   nb,							// number of blocks for search
 	float p,							// the p value of Lp norm, p in (0,2]
 	float zeta,							// symmetric factor of p-stable distr.
 	float ratio,						// approximation ratio
@@ -136,13 +135,8 @@ int qalsh_plus(						// k-NN search of qalsh+
 	//  indexing
 	// -------------------------------------------------------------------------
 	gettimeofday(&start_time, NULL);
-	char index_path[200];
-	strcpy(index_path, output_folder);
-	strcat(index_path, "qalsh_plus_mem/");
-
 	QALSH_Plus *lsh = new QALSH_Plus();
-	lsh->build(n, d, kd_leaf_size, L, M, p, zeta, ratio, (const float **) data, 
-		index_path);
+	lsh->build(n, d, kd_leaf_size, L, M, p, zeta, ratio, (const float **) data);
 
 	gettimeofday(&end_time, NULL);
 	float indexing_time = end_time.tv_sec - start_time.tv_sec + 
@@ -153,7 +147,7 @@ int qalsh_plus(						// k-NN search of qalsh+
 	//  c-k-ANN search
 	// -------------------------------------------------------------------------
 	char output_set[200];
-	sprintf(output_set, "%sqalsh_plus_mem_nb=%d.out", output_folder, nb);
+	sprintf(output_set, "%sqalsh_plus_mem.out", output_folder);
 
 	FILE *fp = fopen(output_set, "w");
 	if (!fp) {
@@ -169,35 +163,41 @@ int qalsh_plus(						// k-NN search of qalsh+
 	float overall_ratio = -1.0f;
 
 	printf("c-k-ANN Search by QALSH_Plus:\n");
-	printf("  Top-k\t\tRatio\t\tTime (ms)\n");
-	for (int round = 0; round < maxRound; ++round) {
-		gettimeofday(&start_time, NULL);
-		top_k = kNNs[round];
-		overall_ratio = 0.0f;
+	for (int nb = 2; nb <= 10; ++nb) {
+		printf("  nb = %d\n", nb);
+		fprintf(fp, "nb = %d\n", nb);
 
-		MinK_List *list = new MinK_List(top_k);
-		for (int i = 0; i < qn; ++i) {
-			list->reset();
-			lsh->knn(top_k, nb, query[i], list);
+		printf("  Top-k\t\tRatio\t\tTime (ms)\n");
+		for (int round = 0; round < maxRound; ++round) {
+			gettimeofday(&start_time, NULL);
+			top_k = kNNs[round];
+			overall_ratio = 0.0f;
 
-			float ratio = 0.0f;
-			for (int j = 0; j < top_k; ++j) {
-				ratio += list->ith_key(j) / R[i][j];
+			MinK_List *list = new MinK_List(top_k);
+			for (int i = 0; i < qn; ++i) {
+				list->reset();
+				lsh->knn(top_k, nb, query[i], list);
+
+				float ratio = 0.0f;
+				for (int j = 0; j < top_k; ++j) {
+					ratio += list->ith_key(j) / R[i][j];
+				}
+				overall_ratio += ratio / top_k;
 			}
-			overall_ratio += ratio / top_k;
+			delete list; list = NULL;
+			gettimeofday(&end_time, NULL);
+			runtime = end_time.tv_sec - start_time.tv_sec + (end_time.tv_usec - 
+				start_time.tv_usec) / 1000000.0f;
+
+			overall_ratio = overall_ratio / qn;
+			runtime = (runtime * 1000.0f) / qn;
+
+			printf("  %3d\t\t%.4f\t\t%.2f\n", top_k, overall_ratio, runtime);
+			fprintf(fp, "%d\t%f\t%f\n", top_k, overall_ratio, runtime);
 		}
-		delete list; list = NULL;
-		gettimeofday(&end_time, NULL);
-		runtime = end_time.tv_sec - start_time.tv_sec + (end_time.tv_usec - 
-			start_time.tv_usec) / 1000000.0f;
-
-		overall_ratio = overall_ratio / qn;
-		runtime = (runtime * 1000.0f) / qn;
-
-		printf("  %3d\t\t%.4f\t\t%.2f\n", top_k, overall_ratio, runtime);
-		fprintf(fp, "%d\t%f\t%f\n", top_k, overall_ratio, runtime);
+		printf("\n");
+		fprintf(fp, "\n");
 	}
-	printf("\n");
 	fclose(fp);
 
 	// -------------------------------------------------------------------------
@@ -268,12 +268,8 @@ int qalsh(							// k-NN search of qalsh
 	//  indexing
 	// -------------------------------------------------------------------------
 	gettimeofday(&start_time, NULL);
-	char index_path[200];
-	strcpy(index_path, output_folder);
-	strcat(index_path, "qalsh_mem/");
-
 	QALSH *lsh = new QALSH();
-	lsh->build(n, d, p, zeta, ratio, (const float**) data, index_path);
+	lsh->build(n, d, p, zeta, ratio, (const float**) data);
 
 	gettimeofday(&end_time, NULL);
 	float indexing_time = end_time.tv_sec - start_time.tv_sec + 

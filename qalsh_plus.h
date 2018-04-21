@@ -1,20 +1,18 @@
 #ifndef __QALSH_PLUS_H
 #define __QALSH_PLUS_H
 
-class  QALSH;
-class  MinK_List;
+class QALSH;
+class MinK_List;
 
 // -----------------------------------------------------------------------------
 //  Blocks: an block which stores hash tables for some of data objects
 // -----------------------------------------------------------------------------
 struct Blocks {
 	int n_pts_;
-	int start_;
-	
 	vector<int> index_;
 	QALSH *lsh_;
 
-	Blocks() { n_pts_ = -1; start_ = -1; lsh_ = NULL; }
+	Blocks() { n_pts_ = -1; lsh_ = NULL; }
 	~Blocks() { if (lsh_ != NULL) { delete lsh_; lsh_ = NULL; } }
 };
 
@@ -36,8 +34,7 @@ public:
 		float p,						// l_p distance
 		float zeta,						// a parameter of p-stable distr.
 		float ratio,					// approximation ratio
-		const float **data,				// data objects
-		const char *index_path);		// index path
+		const float **data);			// data objects
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN seach	
@@ -55,7 +52,6 @@ protected:
 	float p_;						// l_p distance
 	float zeta_;					// a parameter of p-stable distr.
 	float appr_ratio_;				// approximation ratio
-	char  index_path_[200];			// output path
 
 	int   num_blocks_;				// number of blocks 
 	float **new_order_data_;		// new order data objects

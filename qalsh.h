@@ -22,18 +22,17 @@ public:
 		float p,						// l_p distance
 		float zeta,						// a parameter of p-stable distr.
 		float ratio,					// approximation ratio
-		const float **data,				// data objects
-		const char *index_path);		// index path
+		const float **data);			// data objects
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN search
-		int   top_k,					// top-k value
+		int top_k,						// top-k value
 		const float *query,				// input query object
 		MinK_List *list);				// k-NN results (return)
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN search
-		int   top_k,					// top-k value
+		int top_k,						// top-k value
 		float R,						// limited search range
 		const float *query,				// input query object
 		const vector<int> &object_id,	// object id mapping
@@ -46,7 +45,6 @@ protected:
 	float  p_;						// l_p distance
 	float  zeta_;					// a parameter of p-stable distr.
 	float  appr_ratio_;				// approximation ratio
-	char   index_path_[200];		// index path
 	const  float **data_;			// data objects
 
 	float  w_;						// bucket width
@@ -92,7 +90,7 @@ protected:
 
 	// -------------------------------------------------------------------------
 	float calc_hash_value(			// calc hash value
-		int   table_id,					// hash table id
+		int table_id,					// hash table id
 		const float *point);			// one point
 
 	// -------------------------------------------------------------------------

@@ -19,7 +19,6 @@ int qalsh_plus(						// k-NN search of qalsh+
 	int   kd_leaf_size,					// leaf size of kd-tree
 	int   L,							// number of projection (drusilla)
 	int   M,							// number of candidates (drusilla)
-	int   nb,							// number of blocks for search
 	float p,							// the p value of Lp norm, p in (0,2]
 	float zeta,							// symmetric factor of p-stable distr.
 	float ratio,						// approximation ratio

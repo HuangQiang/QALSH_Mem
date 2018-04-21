@@ -74,8 +74,7 @@ int QALSH::build(					// build index
 	float p,							// l_p distance
 	float zeta,							// a parameter of p-stable distr.
 	float ratio,						// approximation ratio
-	const float **data,					// data objects
-	const char *index_path)				// index path
+	const float **data)					// data objects
 {
 	// -------------------------------------------------------------------------
 	//  init parameters
@@ -85,10 +84,7 @@ int QALSH::build(					// build index
 	p_          = p;
 	zeta_       = zeta;
 	appr_ratio_ = ratio;
-	data_ = data;
-
-	strcpy(index_path_, index_path);
-	create_dir(index_path_);
+	data_       = data;
 
 	// -------------------------------------------------------------------------
 	//  calc parameters and generate hash functions
@@ -125,17 +121,17 @@ void QALSH::calc_params()			// calc params of qalsh
 		/ (appr_ratio_ * appr_ratio_ - 1.0f));
 
 	if (fabs(p_ - 0.5f) < FLOATZERO) {
-		w_ = w0;
+		w_  = w0;
 		p1_ = calc_l0_prob(w_ / 2.0f);
 		p2_ = calc_l0_prob(w_ / (2.0f * appr_ratio_));
 	}
 	else if (fabs(p_ - 1.0f) < FLOATZERO) {
-		w_ = w1;
+		w_  = w1;
 		p1_ = calc_l1_prob(w_ / 2.0f);
 		p2_ = calc_l1_prob(w_ / (2.0f * appr_ratio_));
 	}
 	else if (fabs(p_ - 2.0f) < FLOATZERO) {
-		w_ = w2;
+		w_  = w2;
 		p1_ = calc_l2_prob(w_ / 2.0f);
 		p2_ = calc_l2_prob(w_ / (2.0f * appr_ratio_));
 	}
@@ -219,7 +215,7 @@ void QALSH::gen_hash_func()			// generate hash function <a_array>
 // -----------------------------------------------------------------------------
 void QALSH::display()				// display parameters
 {
-	printf("Parameters of QALSH (L_%.1f Distance):\n", p_);
+	printf("Parameters of QALSH:\n");
 	printf("    n     = %d\n", n_pts_);
 	printf("    d     = %d\n", dim_);
 	printf("    p     = %f\n", p_);
@@ -233,7 +229,6 @@ void QALSH::display()				// display parameters
 	printf("    delta = %f\n", delta_);
 	printf("    m     = %d\n", m_);
 	printf("    l     = %d\n", l_);
-	printf("    path  = %s\n", index_path_);
 	printf("\n");
 }
 
@@ -253,7 +248,7 @@ void QALSH::bulkload()				// build index
 
 // -----------------------------------------------------------------------------
 float QALSH::calc_hash_value(		// calc hash value
-	int   table_id,						// hash table id
+	int table_id,						// hash table id
 	const float *point)					// input data object
 {
 	float ret = 0.0f;

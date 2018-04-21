@@ -62,8 +62,7 @@ int QALSH_Plus::build(				// build index
 	float p,							// l_p distance
 	float zeta,							// a parameter of p-stable distr.
 	float ratio,						// approximation ratio
-	const float **data,					// data objects
-	const char *index_path)				// index path
+	const float **data)					// data objects
 {
 	// -------------------------------------------------------------------------
 	//  init parameters
@@ -76,9 +75,6 @@ int QALSH_Plus::build(				// build index
 	p_            = p;
 	zeta_         = zeta;
 	appr_ratio_   = ratio;
-
-	strcpy(index_path_, index_path);
-	create_dir(index_path_);
 
 	// -------------------------------------------------------------------------
 	//  build hash tables (bulkloading)
@@ -117,12 +113,12 @@ int QALSH_Plus::bulkload(			// bulkloading
 	//  bulkloading data objects for each block 
 	// -------------------------------------------------------------------------
 	int sample_size = L_ * M_;
-	num_blocks_     = (int) block_size.size();
-	sample_n_pts_   = num_blocks_ * sample_size;
+	num_blocks_ = (int) block_size.size();
+	sample_n_pts_ = num_blocks_ * sample_size;
 
-	int *sample_id      = new int[sample_n_pts_]; 
+	int *sample_id = new int[sample_n_pts_]; 
 	sample_id_to_block_ = new int[sample_n_pts_];
-	sample_data_        = new float*[sample_n_pts_];
+	sample_data_ = new float*[sample_n_pts_];
 	for (int i = 0; i < sample_n_pts_; ++i) {
 		sample_data_[i] = new float[dim_];
 	}
@@ -159,20 +155,14 @@ int QALSH_Plus::bulkload(			// bulkloading
 		// ---------------------------------------------------------------------
 		Blocks *block = new Blocks();
 		block->n_pts_ = n;
-		block->start_ = start;
-		
 		block->index_.resize(n);
 		for (int j = 0; j < n; ++j) {
 			block->index_[j] = new_order_id[start + j];
 		}
 
-		char path[200];
-		sprintf(path, "%s%d/", index_path_, i);
-		create_dir(path);
-
 		block->lsh_ = new QALSH();
 		block->lsh_->build(n, dim_, p_, zeta_, appr_ratio_, 
-			(const float **) new_order_data_ + start, path);
+			(const float **) new_order_data_ + start);
 		blocks_.push_back(block);
 
 		// ---------------------------------------------------------------------
@@ -185,13 +175,9 @@ int QALSH_Plus::bulkload(			// bulkloading
 	// -------------------------------------------------------------------------
 	//  build index for sample data
 	// -------------------------------------------------------------------------
-	char path[200];
-	sprintf(path, "%s%s/", index_path_, "sample");
-	create_dir(path);
-
 	lsh_ = new QALSH();
 	lsh_->build(sample_n_pts_, dim_, p_, zeta_, appr_ratio_, 
-		(const float **)sample_data_, path);
+		(const float **) sample_data_);
 
 	// -------------------------------------------------------------------------
 	//  release space
@@ -208,7 +194,7 @@ int QALSH_Plus::kd_tree_partition(	// kd-tree partition
 	vector<int> &block_size,			// block size
 	int *new_order_id)					// new order id
 {
-	KD_Tree* tree = new KD_Tree(n_pts_, dim_, kd_leaf_size_, data);
+	KD_Tree *tree = new KD_Tree(n_pts_, dim_, kd_leaf_size_, data);
 	tree->traversal(block_size, new_order_id);
 
 	delete tree; tree = NULL;
@@ -311,7 +297,7 @@ int QALSH_Plus::drusilla_select(	// drusilla select
 					close_angle[j] = true;
 				}
 			}
-			else if (fabs(norm[j]) < 0.000001) {
+			else if (fabs(norm[j]) < FLOATZERO) {
 				score_pair[j].key_ = MINREAL + 1.0f;
 			}
 			else {
@@ -428,7 +414,7 @@ int QALSH_Plus::get_block_order(	// get block order
 	// -------------------------------------------------------------------------
 	//  select the first <nb> blocks with largest counters
 	// -------------------------------------------------------------------------
-	int size = list->size();
+	int size = (int) list->size();
 	for (int i = 0; i < size; ++i) {
 		int block_id = sample_id_to_block_[list->ith_id(i)];
 		pair[block_id].key_ += 1.0f;

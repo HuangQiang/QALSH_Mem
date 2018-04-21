@@ -13,8 +13,8 @@ L=30
 M=7
 c=2.0
 
-dPath=../../data/${dname}/${dname}
-dFolder=../../data/${dname}/
+dPath=./data/${dname}/${dname}
+dFolder=./data/${dname}/
 
 # ------------------------------------------------------------------------------
 #  Running Scripts
@@ -27,7 +27,7 @@ for j in $(seq 0 ${length})
 do 
   p=${p_list[j]}
   z=${z_list[j]}
-  oFolder=../../result2.0/${dname}/L${p}/
+  oFolder=./results${c}/${dname}/L${p}/
 
   # ----------------------------------------------------------------------------
   #  Ground Truth
@@ -38,12 +38,9 @@ do
   # ----------------------------------------------------------------------------
   #  QALSH_Plus
   # ----------------------------------------------------------------------------
-  for nb in $(seq 2 10)
-  do
-    ./qalsh -alg 1 -n ${n} -qn ${qn} -d ${d} -leaf ${leaf} -L ${L} -M ${M} \
-      -nb ${nb} -p ${p} -z ${z} -c ${c} -ds ${dPath}.ds -qs ${dPath}.q \
-      -ts ${dPath}.gt${p} -of ${oFolder}
-  done
+  ./qalsh -alg 1 -n ${n} -qn ${qn} -d ${d} -leaf ${leaf} -L ${L} -M ${M} \
+    -nb ${nb} -p ${p} -z ${z} -c ${c} -ds ${dPath}.ds -qs ${dPath}.q \
+    -ts ${dPath}.gt${p} -of ${oFolder}
 
   # ----------------------------------------------------------------------------
   #  QALSH

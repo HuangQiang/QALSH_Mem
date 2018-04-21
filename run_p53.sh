@@ -10,8 +10,8 @@ qn=100
 d=5408
 c=2.0
 
-dPath=../../data/${dname}/${dname}
-dFolder=../../data/${dname}/
+dPath=./data/${dname}/${dname}
+dFolder=./data/${dname}/
 
 # ------------------------------------------------------------------------------
 #  Running Scripts
@@ -24,7 +24,7 @@ for j in $(seq 0 ${length})
 do 
   p=${p_list[j]}
   z=${z_list[j]}
-  oFolder=../../result2.0/${dname}/L${p}/
+  oFolder=./results${c}/${dname}/L${p}/
 
   # ----------------------------------------------------------------------------
   #  Ground Truth
