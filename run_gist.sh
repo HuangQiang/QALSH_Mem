@@ -39,8 +39,8 @@ do
   #  QALSH_Plus
   # ----------------------------------------------------------------------------
   ./qalsh -alg 1 -n ${n} -qn ${qn} -d ${d} -leaf ${leaf} -L ${L} -M ${M} \
-    -nb ${nb} -p ${p} -z ${z} -c ${c} -ds ${dPath}.ds -qs ${dPath}.q \
-    -ts ${dPath}.gt${p} -of ${oFolder}
+    -p ${p} -z ${z} -c ${c} -ds ${dPath}.ds -qs ${dPath}.q -ts ${dPath}.gt${p} \
+    -of ${oFolder}
 
   # ----------------------------------------------------------------------------
   #  QALSH
