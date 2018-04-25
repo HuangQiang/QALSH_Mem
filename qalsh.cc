@@ -475,8 +475,8 @@ int QALSH::knn(						// k-NN search
 					id = tables_[j][lpos_[j]].id_;
 					if (++freq_[id] >= l_ && !checked_[id]) {
 						checked_[id] = true;
-						oid = object_id[id];
 						dist = calc_lp_dist(dim_, p_, data_[id], query);
+						oid = object_id[id];
 						list->insert(dist, oid);
 
 						if (++dist_cnt >= candidates) break;
@@ -501,8 +501,8 @@ int QALSH::knn(						// k-NN search
 					id = tables_[j][rpos_[j]].id_;
 					if (++freq_[id] >= l_ && !checked_[id]) {
 						checked_[id] = true;
-						oid = object_id[id];
 						dist = calc_lp_dist(dim_, p_, data_[id], query);
+						oid = object_id[id];
 						list->insert(dist, oid);
 
 						if (++dist_cnt >= candidates) break;

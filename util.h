@@ -1,6 +1,8 @@
 #ifndef __UTIL_H
 #define __UTIL_H
 
+class MinK_List;
+
 // -----------------------------------------------------------------------------
 //  struct Result
 // -----------------------------------------------------------------------------
@@ -36,7 +38,7 @@ int read_data(						// read data/query set from disk
 int read_ground_truth(				// read ground truth results from disk
 	int qn,								// number of query objects
 	const char *fname,					// address of truth set
-	float **R);							// ground truth results (return)
+	Result **R);						// ground truth results (return)
 
 // -----------------------------------------------------------------------------
 float calc_lp_dist(					// calc L_{p} norm
@@ -44,5 +46,11 @@ float calc_lp_dist(					// calc L_{p} norm
 	float p,							// the p value of Lp norm, p in (0, 2]
 	const float *vec1,					// 1st point
 	const float *vec2);					// 2nd point
+
+// -----------------------------------------------------------------------------
+float calc_recall(					// calc recall (percentage)
+	int k,								// top-k value
+	const Result *R,					// ground truth results 
+	MinK_List *list);					// results returned by algorithms
 
 #endif // __UTIL_H

@@ -20,14 +20,14 @@ int ground_truth(					// find ground truth
 	for (int i = 0; i < n; ++i) data[i] = new float[d];
 	if (read_data(n, d, data_set, data) == 1) {
 		printf("Reading Dataset Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	float **query = new float*[qn];
 	for (int i = 0; i < qn; ++i) query[i] = new float[d];
 	if (read_data(qn, d, query_set, query) == 1) {
 		printf("Reading Query Set Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	gettimeofday(&end_time, NULL);
@@ -54,9 +54,8 @@ int ground_truth(					// find ground truth
 			list->insert(dist, j);
 		}
 
-		fprintf(fp, "%d", i + 1);
 		for (int j = 0; j < MAXK; ++j) {
-			fprintf(fp, " %f", list->ith_key(j));
+			fprintf(fp, "%d %f ", list->ith_id(j), list->ith_key(j));
 		}
 		fprintf(fp, "\n");
 	}
@@ -109,21 +108,21 @@ int qalsh_plus(						// k-NN search of qalsh+
 	for (int i = 0; i < n; ++i) data[i] = new float[d];
 	if (read_data(n, d, data_set, data) == 1) {
 		printf("Reading Dataset Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	float **query = new float*[qn];
 	for (int i = 0; i < qn; ++i) query[i] = new float[d];
 	if (read_data(qn, d, query_set, query) == 1) {
 		printf("Reading Query Set Error!\n");
-		exit(1);
+		return 1;
 	}
 
-	float **R = new float*[qn];
-	for (int i = 0; i < qn; ++i) R[i] = new float[MAXK];
+	Result **R = new Result*[qn];
+	for (int i = 0; i < qn; ++i) R[i] = new Result[MAXK];
 	if (read_ground_truth(qn, truth_set, R) == 1) {
 		printf("Reading Truth Set Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	gettimeofday(&end_time, NULL);
@@ -161,26 +160,36 @@ int qalsh_plus(						// k-NN search of qalsh+
 
 	float runtime = -1.0f;
 	float overall_ratio = -1.0f;
+	float recall = -1.0f;
+
+	int start = 2, end = 10;
+	if (kd_leaf_size == 40000) {
+		start = 5; end = 20;
+	}
 
 	printf("c-k-ANN Search by QALSH_Plus:\n");
-	for (int nb = 2; nb <= 10; ++nb) {
+	for (int nb = start; nb <= end; ++nb) {
 		printf("  nb = %d\n", nb);
 		fprintf(fp, "nb = %d\n", nb);
 
-		printf("  Top-k\t\tRatio\t\tTime (ms)\n");
+		printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall\n");
 		for (int round = 0; round < maxRound; ++round) {
 			gettimeofday(&start_time, NULL);
 			top_k = kNNs[round];
-			overall_ratio = 0.0f;
-
 			MinK_List *list = new MinK_List(top_k);
+
+			overall_ratio = 0.0f;
+			recall = 0.0f;
+			
 			for (int i = 0; i < qn; ++i) {
 				list->reset();
 				lsh->knn(top_k, nb, query[i], list);
 
+				recall += calc_recall(top_k, (const Result*) R[i], list);
+
 				float ratio = 0.0f;
 				for (int j = 0; j < top_k; ++j) {
-					ratio += list->ith_key(j) / R[i][j];
+					ratio += list->ith_key(j) / R[i][j].key_;
 				}
 				overall_ratio += ratio / top_k;
 			}
@@ -190,10 +199,13 @@ int qalsh_plus(						// k-NN search of qalsh+
 				start_time.tv_usec) / 1000000.0f;
 
 			overall_ratio = overall_ratio / qn;
-			runtime = (runtime * 1000.0f) / qn;
+			recall        = recall / qn;
+			runtime       = (runtime * 1000.0f) / qn;
 
-			printf("  %3d\t\t%.4f\t\t%.2f\n", top_k, overall_ratio, runtime);
-			fprintf(fp, "%d\t%f\t%f\n", top_k, overall_ratio, runtime);
+			printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", 
+				top_k, overall_ratio, runtime, recall);
+			fprintf(fp, "%d\t%f\t%f\t%f\n", 
+				top_k, overall_ratio, runtime, recall);
 		}
 		printf("\n");
 		fprintf(fp, "\n");
@@ -242,21 +254,21 @@ int qalsh(							// k-NN search of qalsh
 	for (int i = 0; i < n; ++i) data[i] = new float[d];
 	if (read_data(n, d, data_set, data) == 1) {
 		printf("Reading Dataset Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	float **query = new float*[qn];
 	for (int i = 0; i < qn; ++i) query[i] = new float[d];
 	if (read_data(qn, d, query_set, query) == 1) {
 		printf("Reading Query Set Error!\n");
-		exit(1);
+		return 1;
 	}
 
-	float **R = new float*[qn];
-	for (int i = 0; i < qn; ++i) R[i] = new float[MAXK];
+	Result **R = new Result*[qn];
+	for (int i = 0; i < qn; ++i) R[i] = new Result[MAXK];
 	if (read_ground_truth(qn, truth_set, R) == 1) {
 		printf("Reading Truth Set Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	gettimeofday(&end_time, NULL);
@@ -294,22 +306,27 @@ int qalsh(							// k-NN search of qalsh
 
 	float runtime = -1.0f;
 	float overall_ratio = -1.0f;
+	float recall = -1.0f;
 
 	printf("c-k-ANN Search by QALSH:\n");
-	printf("  Top-k\t\tRatio\t\tTime (ms)\n");
+	printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall\n");
 	for (int round = 0; round < maxRound; ++round) {
 		gettimeofday(&start_time, NULL);
 		top_k = kNNs[round];
-		overall_ratio = 0.0f;
-
 		MinK_List *list = new MinK_List(top_k);
+
+		overall_ratio = 0.0f;
+		recall = 0.0f;
+	
 		for (int i = 0; i < qn; ++i) {
 			list->reset();
 			lsh->knn(top_k, query[i], list);
 
+			recall += calc_recall(top_k, (const Result*) R[i], list);
+
 			float ratio = 0.0f;
 			for (int j = 0; j < top_k; ++j) {
-				ratio += list->ith_key(j) / R[i][j];
+				ratio += list->ith_key(j) / R[i][j].key_;
 			}
 			overall_ratio += ratio / top_k;
 		}
@@ -319,10 +336,13 @@ int qalsh(							// k-NN search of qalsh
 			start_time.tv_usec) / 1000000.0f;
 
 		overall_ratio = overall_ratio / qn;
-		runtime = (runtime * 1000.0f) / qn;
+		recall        = recall / qn;
+		runtime       = (runtime * 1000.0f) / qn;
 
-		printf("  %3d\t\t%.4f\t\t%.2f\n", top_k, overall_ratio, runtime);
-		fprintf(fp, "%d\t%f\t%f\n", top_k, overall_ratio, runtime);
+		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", 
+			top_k, overall_ratio, runtime, recall);
+		fprintf(fp, "%d\t%f\t%f\t%f\n", 
+			top_k, overall_ratio, runtime, recall);
 	}
 	printf("\n");
 	fclose(fp);
@@ -367,21 +387,21 @@ int linear_scan(					// k-NN search of linear scan method
 	for (int i = 0; i < n; ++i) data[i] = new float[d];
 	if (read_data(n, d, data_set, data) == 1) {
 		printf("Reading Dataset Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	float **query = new float*[qn];
 	for (int i = 0; i < qn; ++i) query[i] = new float[d];
 	if (read_data(qn, d, query_set, query) == 1) {
 		printf("Reading Query Set Error!\n");
-		exit(1);
+		return 1;
 	}
 
-	float **R = new float*[qn];
-	for (int i = 0; i < qn; ++i) R[i] = new float[MAXK];
+	Result **R = new Result*[qn];
+	for (int i = 0; i < qn; ++i) R[i] = new Result[MAXK];
 	if (read_ground_truth(qn, truth_set, R) == 1) {
 		printf("Reading Truth Set Error!\n");
-		exit(1);
+		return 1;
 	}
 
 	gettimeofday(&end_time, NULL);
@@ -407,15 +427,18 @@ int linear_scan(					// k-NN search of linear scan method
 
 	float runtime = -1.0f;
 	float overall_ratio = -1.0f;
+	float recall = -1.0f;
 
 	printf("k-NN Search by Linear Scan:\n");
-	printf("  Top-k\t\tRatio\t\tTime (ms)\n");
+	printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall\n");
 	for (int round = 0; round < maxRound; ++round) {
 		gettimeofday(&start_time, NULL);
 		top_k = kNNs[round];
-		overall_ratio = 0.0f;
-
 		MinK_List *list = new MinK_List(top_k);
+
+		overall_ratio = 0.0f;
+		recall = 0.0f;
+		
 		for (int i = 0; i < qn; ++i) {
 			list->reset();
 			for (int j = 0; j < n; ++j) {
@@ -423,9 +446,11 @@ int linear_scan(					// k-NN search of linear scan method
 				list->insert(dist, j);
 			}
 
+			recall += calc_recall(top_k, (const Result*) R[i], list);
+
 			float ratio = 0.0f;
 			for (int j = 0; j < top_k; ++j) {
-				ratio += list->ith_key(j) / R[i][j];
+				ratio += list->ith_key(j) / R[i][j].key_;
 			}
 			overall_ratio += ratio / top_k;
 		}
@@ -435,10 +460,13 @@ int linear_scan(					// k-NN search of linear scan method
 			start_time.tv_usec) / 1000000.0f;
 
 		overall_ratio = overall_ratio / qn;
-		runtime = (runtime * 1000.0f) / qn;
+		recall        = recall / qn;
+		runtime       = (runtime * 1000.0f) / qn;
 
-		printf("  %3d\t\t%.4f\t\t%.2f\n", top_k, overall_ratio, runtime);
-		fprintf(fp, "%d\t%f\t%f\n", top_k, overall_ratio, runtime);
+		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", 
+			top_k, overall_ratio, runtime, recall);
+		fprintf(fp, "%d\t%f\t%f\t%f\n", 
+			top_k, overall_ratio, runtime, recall);
 	}
 	printf("\n");
 	fclose(fp);
