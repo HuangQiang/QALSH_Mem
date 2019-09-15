@@ -1,10 +1,10 @@
 # QALSH_Mem: Memory Version of QALSH and QALSH+
 
-Version: 1.3.1
+Version: 1.3.2
 
 Release date: 03-10-2017
 
-Last Modified: 20-04-2018
+Last Modified: 16-09-2019
 
 
 Introduction
