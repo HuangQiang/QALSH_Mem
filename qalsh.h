@@ -4,25 +4,30 @@
 #include <vector>
 using namespace std;
 
-class  MinK_List;
-struct Result;
-
 // -----------------------------------------------------------------------------
-//  QALSH: an LSH scheme for for high-dimensional c-k-ANN search
+//  Query-Aware Locality-Sensitive Hashing (QALSH) is used to solve the problem 
+//  of c-Approximate Nearest Neighbor (c-ANN) search.
+//
+//  the idea was introduced by Qiang Huang, Jianlin Feng, Yikai Zhang, Qiong 
+//  Fang, and Wilfred Ng in their paper "Query-aware locality-sensitive hashing 
+//  for approximate nearest neighbor search", in Proceedings of the VLDB 
+//  Endowment (PVLDB), 9(1), pages 1–12, 2015.
 // -----------------------------------------------------------------------------
 class QALSH {
 public:
-	QALSH();						// constructor
-	~QALSH();						// destructor
-
-	// -------------------------------------------------------------------------
-	int build(						// build index
+	QALSH(							// constructor
 		int   n,						// cardinality
 		int   d,						// dimensionality
 		float p,						// l_p distance
 		float zeta,						// a parameter of p-stable distr.
 		float ratio,					// approximation ratio
 		const float **data);			// data objects
+
+	// -------------------------------------------------------------------------
+	~QALSH();						// destructor
+
+	// -------------------------------------------------------------------------
+	void display();					// display parameters
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN search
@@ -67,9 +72,6 @@ protected:
 	float  *q_val_;					// hash value of query
 	
 	// -------------------------------------------------------------------------
-	void calc_params();				// calc parameters of qalsh
-
-	// -------------------------------------------------------------------------
 	float calc_l0_prob(				// calc <p1> and <p2> for L_{0.5} distance
 		float x);						// x = w / (2.0 * r)
 
@@ -77,25 +79,16 @@ protected:
 		float x);						// x = w / (2.0 * r)
 
 	float calc_l2_prob(				// calc <p1> and <p2> for L_{2.0} distance
-		float x);						// x = w / (2.0 * r)
-
-	// -------------------------------------------------------------------------
-	void gen_hash_func();			// generate hash functions
-
-	// -------------------------------------------------------------------------
-	void display();					// display parameters
-	
-	// -------------------------------------------------------------------------
-	void bulkload();				// build hash tables	
+		float x);						// x = w / (2.0 * r)	
 
 	// -------------------------------------------------------------------------
 	float calc_hash_value(			// calc hash value
-		int table_id,					// hash table id
-		const float *point);			// one point
+		int   table_id,					// hash table id
+		const float *data);				// one data/query object
 
 	// -------------------------------------------------------------------------
 	int binary_search_pos(			// find position by binary search
-		int table_id,					// hash table id
+		int   table_id,					// hash table id
 		float value);					// hash value
 };
 

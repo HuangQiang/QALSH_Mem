@@ -2,61 +2,10 @@
 
 
 // -----------------------------------------------------------------------------
-QALSH_Plus::QALSH_Plus()			// constructor
-{
-	n_pts_              = -1;
-	dim_                = -1;
-	kd_leaf_size_       = -1;
-	L_                  = -1;
-	M_                  = -1;
-	p_                  = -1.0f;
-	zeta_               = -1.0f;
-	appr_ratio_         = -1.0f;
-	
-	num_blocks_         = -1;
-	new_order_data_     = NULL;
-	
-	sample_n_pts_       = -1;
-	sample_id_to_block_ = NULL;
-	sample_data_        = NULL;
-	lsh_                = NULL;
-}
-
-// -----------------------------------------------------------------------------
-QALSH_Plus::~QALSH_Plus()			// destructor
-{
-	if (new_order_data_ != NULL) {
-		for (int i = 0; i < n_pts_; ++i) {
-			delete[] new_order_data_[i]; new_order_data_[i] = NULL;
-		}
-		delete[] new_order_data_; new_order_data_ = NULL;
-	}
-	if (!blocks_.empty()) {
-		for (int i = 0; i < num_blocks_; ++i) {
-			delete blocks_[i]; blocks_[i] = NULL;
-		}
-		blocks_.clear(); blocks_.shrink_to_fit();
-	}
-
-	if (sample_id_to_block_ != NULL) {
-		delete[] sample_id_to_block_; sample_id_to_block_ = NULL;
-	}
-	if (sample_data_ != NULL) {
-		for (int i = 0; i < sample_n_pts_; ++i) {
-			delete[] sample_data_[i]; sample_data_[i] = NULL;
-		}
-		delete[] sample_data_; sample_data_ = NULL;
-	}
-	if (lsh_ != NULL) {
-		delete lsh_; lsh_ = NULL;
-	}
-}
-
-// -----------------------------------------------------------------------------
-int QALSH_Plus::build(				// build index		
+QALSH_PLUS::QALSH_PLUS(				// constructor
 	int   n,							// cardinality
 	int   d,							// dimensionality
-	int   kd_leaf_size,					// leaf size of kd-tree
+	int   leaf,							// leaf size of kd-tree
 	int   L,							// number of projection
 	int   M,							// number of candidates for each proj
 	float p,							// l_p distance
@@ -67,26 +16,23 @@ int QALSH_Plus::build(				// build index
 	// -------------------------------------------------------------------------
 	//  init parameters
 	// -------------------------------------------------------------------------
-	n_pts_        = n;
-	dim_          = d;
-	kd_leaf_size_ = kd_leaf_size;
-	L_            = L;
-	M_            = M;
-	p_            = p;
-	zeta_         = zeta;
-	appr_ratio_   = ratio;
+	n_pts_      = n;
+	dim_        = d;
+	leaf_       = leaf;
+	L_          = L;
+	M_          = M;
+	p_          = p;
+	zeta_       = zeta;
+	appr_ratio_ = ratio;
 
 	// -------------------------------------------------------------------------
-	//  build hash tables (bulkloading)
+	//  bulkloading
 	// -------------------------------------------------------------------------
 	bulkload(data);
-	display();
-	
-	return 0;
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_Plus::bulkload(			// bulkloading
+int QALSH_PLUS::bulkload(			// bulkloading
 	const float **data)					// data objects
 {
 	// -------------------------------------------------------------------------
@@ -113,12 +59,12 @@ int QALSH_Plus::bulkload(			// bulkloading
 	//  bulkloading data objects for each block 
 	// -------------------------------------------------------------------------
 	int sample_size = L_ * M_;
-	num_blocks_ = (int) block_size.size();
+	num_blocks_   = (int) block_size.size();
 	sample_n_pts_ = num_blocks_ * sample_size;
 
-	int *sample_id = new int[sample_n_pts_]; 
+	int *sample_id      = new int[sample_n_pts_]; 
 	sample_id_to_block_ = new int[sample_n_pts_];
-	sample_data_ = new float*[sample_n_pts_];
+	sample_data_        = new float*[sample_n_pts_];
 	for (int i = 0; i < sample_n_pts_; ++i) {
 		sample_data_[i] = new float[dim_];
 	}
@@ -160,8 +106,7 @@ int QALSH_Plus::bulkload(			// bulkloading
 			block->index_[j] = new_order_id[start + j];
 		}
 
-		block->lsh_ = new QALSH();
-		block->lsh_->build(n, dim_, p_, zeta_, appr_ratio_, 
+		block->lsh_ = new QALSH(n, dim_, p_, zeta_, appr_ratio_, 
 			(const float **) new_order_data_ + start);
 		blocks_.push_back(block);
 
@@ -175,8 +120,7 @@ int QALSH_Plus::bulkload(			// bulkloading
 	// -------------------------------------------------------------------------
 	//  build index for sample data
 	// -------------------------------------------------------------------------
-	lsh_ = new QALSH();
-	lsh_->build(sample_n_pts_, dim_, p_, zeta_, appr_ratio_, 
+	lsh_ = new QALSH(sample_n_pts_, dim_, p_, zeta_, appr_ratio_,
 		(const float **) sample_data_);
 
 	// -------------------------------------------------------------------------
@@ -189,12 +133,12 @@ int QALSH_Plus::bulkload(			// bulkloading
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_Plus::kd_tree_partition(	// kd-tree partition
+int QALSH_PLUS::kd_tree_partition(	// kd-tree partition
 	const float **data,					// data objects
 	vector<int> &block_size,			// block size
 	int *new_order_id)					// new order id
 {
-	KD_Tree *tree = new KD_Tree(n_pts_, dim_, kd_leaf_size_, data);
+	KD_Tree *tree = new KD_Tree(n_pts_, dim_, leaf_, data);
 	tree->traversal(block_size, new_order_id);
 
 	delete tree; tree = NULL;
@@ -202,7 +146,7 @@ int QALSH_Plus::kd_tree_partition(	// kd-tree partition
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_Plus::calc_shift_data(	// calculate shift data objects
+int QALSH_PLUS::calc_shift_data(	// calculate shift data objects
 	int   n,							// number of data points
 	int   d,							// dimensionality
 	const float **data,					// data objects
@@ -234,7 +178,7 @@ int QALSH_Plus::calc_shift_data(	// calculate shift data objects
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_Plus::drusilla_select(	// drusilla select
+int QALSH_PLUS::drusilla_select(	// drusilla select
 	int   n,							// number of objects
 	int   d,							// data dimension
 	const vector<vector<float> > &shift_data, // shift data objects
@@ -343,26 +287,45 @@ int QALSH_Plus::drusilla_select(	// drusilla select
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_Plus::display()			// display parameters
+QALSH_PLUS::~QALSH_PLUS()			// destructor
 {
-	printf("Parameters of QALSH_Plus:\n");
-	printf("    n            = %d\n", n_pts_);
-	printf("    d            = %d\n", dim_);
-	printf("    kd_leaf_size = %d\n", kd_leaf_size_);
-	printf("    L            = %d\n", L_);
-	printf("    M            = %d\n", M_);
-	printf("    p            = %.1f\n", p_);
-	printf("    zeta         = %.1f\n", zeta_);
-	printf("    c            = %.1f\n", appr_ratio_);
-	printf("    num_blocks   = %d\n", num_blocks_);
-	printf("    sample_n     = %d\n", sample_n_pts_);
-	printf("\n");
+	for (int i = 0; i < n_pts_; ++i) {
+		delete[] new_order_data_[i]; new_order_data_[i] = NULL;
+	}
+	delete[] new_order_data_; new_order_data_ = NULL;
 
-	return 0;
+	for (int i = 0; i < num_blocks_; ++i) {
+		delete blocks_[i]; blocks_[i] = NULL;
+	}
+	blocks_.clear(); blocks_.shrink_to_fit();
+
+	delete lsh_; lsh_ = NULL;
+	delete[] sample_id_to_block_; sample_id_to_block_ = NULL;
+
+	for (int i = 0; i < sample_n_pts_; ++i) {
+		delete[] sample_data_[i]; sample_data_[i] = NULL;
+	}
+	delete[] sample_data_; sample_data_ = NULL;
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_Plus::knn(				// c-k-ANN search
+void QALSH_PLUS::display()			// display parameters
+{
+	printf("Parameters of QALSH+:\n");
+	printf("    n          = %d\n",   n_pts_);
+	printf("    d          = %d\n",   dim_);
+	printf("    leaf       = %d\n",   leaf_);
+	printf("    L          = %d\n",   L_);
+	printf("    M          = %d\n",   M_);
+	printf("    p          = %.1f\n", p_);
+	printf("    zeta       = %.1f\n", zeta_);
+	printf("    c          = %.1f\n", appr_ratio_);
+	printf("    num_blocks = %d\n",   num_blocks_);
+	printf("    sample_n   = %d\n\n", sample_n_pts_);
+}
+
+// -----------------------------------------------------------------------------
+int QALSH_PLUS::knn(				// c-k-ANN search
 	int   top_k,						// top-k value
 	int   nb,							// number of blocks for search
 	const float *query,					// input query objects
@@ -376,26 +339,25 @@ int QALSH_Plus::knn(				// c-k-ANN search
 
 	vector<int> block_order;
 	get_block_order(nb, sample_list, block_order);
-	delete sample_list; sample_list = NULL;
 	
 	// -------------------------------------------------------------------------
 	//  use <nb> blocks for k-NN search
 	// -------------------------------------------------------------------------
 	int radius = MAXREAL;
 	int size = (int) block_order.size();
-
 	for (int i = 0; i < size; ++i) {
 		int id = block_order[i];
 		blocks_[id]->lsh_->knn(top_k, radius, query, blocks_[id]->index_, list);
 
 		radius = list->max_key();
 	}
-
+	delete sample_list; sample_list = NULL;
+	
 	return 0;
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_Plus::get_block_order(	// get block order
+int QALSH_PLUS::get_block_order(	// get block order
 	int nb,								// number of blocks for search
 	MinK_List *list,					// sample results
 	vector<int> &block_order)			// block order (return)
@@ -407,7 +369,7 @@ int QALSH_Plus::get_block_order(	// get block order
 	// -------------------------------------------------------------------------
 	Result *pair = new Result[num_blocks_];
 	for (int i = 0; i < num_blocks_; ++i) {
-		pair[i].id_ = i;
+		pair[i].id_  = i;
 		pair[i].key_ = 0.0f;
 	}
 

@@ -17,24 +17,26 @@ struct Blocks {
 };
 
 // -----------------------------------------------------------------------------
-//  QALSH_Plus: an two-level LSH scheme for high-dimensional c-k-ANN search
+//  QALSH_PLUS: an two-level LSH scheme for high-dimensional c-k-ANN search
 // -----------------------------------------------------------------------------
-class QALSH_Plus {
+class QALSH_PLUS {
 public:
-	QALSH_Plus();
-	~QALSH_Plus();
-
-	// -------------------------------------------------------------------------
-	int build(						// build index		
+	QALSH_PLUS(						// constructor
 		int   n,						// cardinality
 		int   d,						// dimensionality
-		int   kd_leaf_size,				// leaf size of kd-tree
+		int   leaf,						// leaf size of kd-tree
 		int   L,						// number of projection
 		int   M,						// number of candidates for each proj
 		float p,						// l_p distance
 		float zeta,						// a parameter of p-stable distr.
 		float ratio,					// approximation ratio
 		const float **data);			// data objects
+
+	// -------------------------------------------------------------------------
+	~QALSH_PLUS();					// destructor
+
+	// -------------------------------------------------------------------------
+	void display();					// display parameters
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN seach	
@@ -46,7 +48,7 @@ public:
 protected:
 	int   n_pts_;					// cardinality
 	int   dim_;						// dimensionality
-	int   kd_leaf_size_;			// leaf size of kd-tree
+	int   leaf_;					// leaf size of kd-tree
 	int   L_;						// number of projection (drusilla)
 	int   M_;						// number of candidates (drusilla)
 	float p_;						// l_p distance
@@ -88,13 +90,10 @@ protected:
 		int   *sample_id);				// sample data id (return)
 
 	// -------------------------------------------------------------------------
-	int display();					// display parameters
-
-	// -------------------------------------------------------------------------
 	int get_block_order(			// get block order
 		int nb,							// number of blocks for search
 		MinK_List *list,				// top-t results from sample data
 		vector<int> &block_order);		// block order (return)
 };
 
-#endif // QALSH_Plus
+#endif // QALSH_PLUS
