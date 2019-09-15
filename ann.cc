@@ -105,6 +105,7 @@ int qalsh_plus(						// k-NN search by qalsh+
 	gettimeofday(&g_end_time, NULL);
 	float indexing_time = g_end_time.tv_sec - g_start_time.tv_sec + 
 		(g_end_time.tv_usec - g_start_time.tv_usec) / 1000000.0f;
+	printf("Indexing Time = %f Seconds\n\n", indexing_time);
 	fprintf(fp, "Indexing Time = %f Seconds\n\n", indexing_time);
 
 	// -------------------------------------------------------------------------
@@ -114,7 +115,6 @@ int qalsh_plus(						// k-NN search by qalsh+
 	if (leaf >= 40000) {
 		start = 5; end = 20;
 	}
-
 	printf("Top-k NN Search by QALSH+:\n");
 	for (int nb = start; nb <= end; ++nb) {
 		printf("  nb = %d\n", nb);
@@ -196,6 +196,7 @@ int qalsh(							// k-NN search by qalsh
 	gettimeofday(&g_end_time, NULL);
 	float indexing_time = g_end_time.tv_sec - g_start_time.tv_sec + 
 		(g_end_time.tv_usec - g_start_time.tv_usec) / 1000000.0f;
+	printf("Indexing Time = %f Seconds\n\n", indexing_time);
 	fprintf(fp, "Indexing Time = %f Seconds\n\n", indexing_time);
 
 	// -------------------------------------------------------------------------
