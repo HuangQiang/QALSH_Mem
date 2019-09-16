@@ -33,8 +33,7 @@ void KD_Leaf::search(				// tree search
 		
 		float dist = 0.0F;
 		for (int j = 0; j < dim_; ++j) {
-			float t = point[j] - query[j];
-			dist = SUM(dist, POW(t));
+			dist += SQR(point[j] - query[j]);
 		}
 		list->insert(dist, object_id_[i]);
 	}
@@ -98,7 +97,7 @@ void KD_Split::search(				// tree search
 		float box_diff = cd_bnds_[0] - query[cut_dim_];
 		if (box_diff < 0.0f) box_diff = 0.0f;
 
-		box_dist = box_dist + (cut_diff * cut_diff - box_diff * box_diff);
+		box_dist += cut_diff * cut_diff - box_diff * box_diff;
 
 		// ---------------------------------------------------------------------
 		//  visit right child
@@ -116,7 +115,7 @@ void KD_Split::search(				// tree search
 		float box_diff = query[cut_dim_] - cd_bnds_[1];
 		if (box_diff < 0) box_diff = 0;
 		
-		box_dist = box_dist + (cut_diff * cut_diff - box_diff * box_diff);
+		box_dist += cut_diff * cut_diff - box_diff * box_diff;
 
 		// ---------------------------------------------------------------------
 		//  visit left child

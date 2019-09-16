@@ -28,8 +28,8 @@
 #include <sys/time.h>
 
 #include "def.h"
-#include "util.h"
 #include "random.h"
+#include "util.h"
 #include "pri_queue.h"
 #include "kd_rect.h"
 #include "kd_node.h"

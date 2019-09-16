@@ -64,9 +64,7 @@ void create_dir(					// create dir if the path exists
 			int ret = access(path, F_OK);
 			if (ret != 0) {			// create the directory
 				ret = mkdir(path, 0755);
-				if (ret != 0) {
-					printf("Could not create directory %s\n", path);
-				}
+				if (ret != 0) printf("Could not create %s\n", path);
 			}
 			path[i + 1] = ch;
 		}
@@ -149,7 +147,6 @@ float calc_lp_dist(					// calc L_{p} norm
 	const float *vec1,					// 1st point
 	const float *vec2)					// 2nd point
 {
-	float diff = 0.0f;
 	float ret  = 0.0f;
 
 	// ---------------------------------------------------------------------
@@ -157,8 +154,7 @@ float calc_lp_dist(					// calc L_{p} norm
 	// ---------------------------------------------------------------------
 	if (fabs(p - 0.5f) < FLOATZERO) {
 		for (int i = 0; i < dim; ++i) {
-			diff = fabs(vec1[i] - vec2[i]);
-			ret += sqrt(diff);
+			ret += sqrt(fabs(vec1[i] - vec2[i]));
 		}
 		return ret * ret;
 	}
@@ -176,8 +172,7 @@ float calc_lp_dist(					// calc L_{p} norm
 	// ---------------------------------------------------------------------
 	else if (fabs(p - 2.0f) < FLOATZERO) {
 		for (int i = 0; i < dim; ++i) {
-			diff = vec1[i] - vec2[i];
-			ret += diff * diff;
+			ret += SQR(vec1[i] - vec2[i]);
 		}
 		return sqrt(ret);
 	}
@@ -186,8 +181,7 @@ float calc_lp_dist(					// calc L_{p} norm
 	// ---------------------------------------------------------------------
 	else {
 		for (int i = 0; i < dim; ++i) {
-			diff = fabs(vec1[i] - vec2[i]);
-			ret += pow(diff, p);
+			ret += pow(fabs(vec1[i] - vec2[i]), p);
 		}
 		return pow(ret, 1.0f / p);
 	}
@@ -288,11 +282,11 @@ void k_nn_search(					// k-NN search
 	// -------------------------------------------------------------------------
 	MinK_List *list = new MinK_List(k);
 	for (int i = 0; i < qn; ++i) {
-		float knn = MAXREAL;
+		float kdist = MAXREAL;
 		list->reset();
 		for (int j = 0; j < n; ++j) {
 			float dist = calc_lp_dist(d, p, data[j], query[i]);
-			knn = list->insert(dist, j + 1);
+			kdist = list->insert(dist, j + 1);
 		}
 
 		for (int j = 0; j < k; ++j) {

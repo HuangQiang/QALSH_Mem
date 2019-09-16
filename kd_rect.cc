@@ -10,10 +10,9 @@ KD_Rect::KD_Rect(					// constructor
 {
 	low_ = new float[dim];
 	high_ = new float[dim];
-	for (int i = 0; i < dim; ++i) {
-		low_[i] = l;
-		high_[i] = h;
-	}
+
+	memset(low_,  l, dim * SIZEFLOAT);
+	memset(high_, h, dim * SIZEFLOAT);
 }
 
 // -----------------------------------------------------------------------------
@@ -21,10 +20,10 @@ KD_Rect::KD_Rect(					// copy constructor
 	int dim,							// dimension
 	const KD_Rect &rect)				// copy item
 {
-	low_ = new float[dim];
+	low_  = new float[dim];
 	high_ = new float[dim];
 	for (int i = 0; i < dim; ++i) {
-		low_[i] = rect.low_[i];
+		low_[i]  = rect.low_[i];
 		high_[i] = rect.high_[i];
 	}
 }
@@ -35,10 +34,10 @@ KD_Rect::KD_Rect(					// constrcutor
 	const float *low,					// lower corner point
 	const float *high)					// higher corner point
 {
-	low_ = new float[dim];
+	low_  = new float[dim];
 	high_ = new float[dim];
 	for (int i = 0; i < dim; ++i) {
-		low_[i] = low[i];
+		low_[i]  = low[i];
 		high_[i] = high[i];
 	}
 }

@@ -83,12 +83,12 @@ protected:
 
 	// -------------------------------------------------------------------------
 	float calc_hash_value(			// calc hash value
-		int   table_id,					// hash table id
+		int   tid,						// hash table id
 		const float *data);				// one data/query object
 
 	// -------------------------------------------------------------------------
 	int binary_search_pos(			// find position by binary search
-		int   table_id,					// hash table id
+		int   tid,						// hash table id
 		float value);					// hash value
 };
 

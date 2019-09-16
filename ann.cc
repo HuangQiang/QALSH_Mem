@@ -60,7 +60,8 @@ int linear_scan(					// k-NN search by linear scan
 		g_recall  = g_recall / qn;
 		g_runtime = (g_runtime * 1000.0f) / qn;
 
-		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, g_recall);
+		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
+			g_recall);
 		fprintf(fp, "%d\t%f\t%f\t%f\n", top_k, g_ratio, g_runtime, g_recall);
 	}
 	printf("\n");
@@ -148,7 +149,8 @@ int qalsh_plus(						// k-NN search by qalsh+
 			g_recall  = g_recall / qn;
 			g_runtime = (g_runtime * 1000.0f) / qn;
 
-			printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, g_recall);
+			printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
+				g_recall);
 			fprintf(fp, "%d\t%f\t%f\t%f\n", top_k, g_ratio, g_runtime, g_recall);
 		}
 		printf("\n");
@@ -231,7 +233,8 @@ int qalsh(							// k-NN search by qalsh
 		g_recall  = g_recall / qn;
 		g_runtime = (g_runtime * 1000.0f) / qn;
 
-		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, g_recall);
+		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
+			g_recall);
 		fprintf(fp, "%d\t%f\t%f\t%f\n", top_k, g_ratio, g_runtime, g_recall);
 	}
 	printf("\n");

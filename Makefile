@@ -1,4 +1,4 @@
-SRCS=util.cc random.cc pri_queue.cc kd_rect.cc kd_node.cc kd_tree.cc \
+SRCS=random.cc util.cc pri_queue.cc kd_rect.cc kd_node.cc kd_tree.cc \
 	qalsh.cc qalsh_plus.cc ann.cc main.cc
 OBJS=${SRCS:.cc=.o}
 
@@ -10,9 +10,9 @@ CPPFLAGS=-w -O3
 all: ${OBJS}
 	${CXX} ${CPPFLAGS} -o qalsh ${OBJS}
 
-util.o: util.h
-
 random.o: random.h
+
+util.o: util.h
 
 pri_queue.o: pri_queue.h
 

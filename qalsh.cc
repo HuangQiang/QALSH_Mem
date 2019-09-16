@@ -32,22 +32,22 @@ QALSH::QALSH(						// constructor
 	// -------------------------------------------------------------------------
 	float w0 = (ratio - 1.0f) / log(sqrt(ratio));
 	float w1 = 2.0f * sqrt(ratio);
-	float w2 = sqrt((8.0f*ratio*ratio*log(ratio)) / (ratio*ratio- 1.0f));
+	float w2 = sqrt((8.0f * SQR(ratio) * log(ratio)) / (SQR(ratio) - 1.0f));
 
 	if (fabs(p_ - 0.5f) < FLOATZERO) {
 		w_  = w0;
 		p1_ = calc_l0_prob(w_ / 2.0f);
-		p2_ = calc_l0_prob(w_ / (2.0f * appr_ratio_));
+		p2_ = calc_l0_prob(w_ / (2.0f * ratio));
 	}
 	else if (fabs(p_ - 1.0f) < FLOATZERO) {
 		w_  = w1;
 		p1_ = calc_l1_prob(w_ / 2.0f);
-		p2_ = calc_l1_prob(w_ / (2.0f * appr_ratio_));
+		p2_ = calc_l1_prob(w_ / (2.0f * ratio));
 	}
 	else if (fabs(p_ - 2.0f) < FLOATZERO) {
 		w_  = w2;
 		p1_ = calc_l2_prob(w_ / 2.0f);
-		p2_ = calc_l2_prob(w_ / (2.0f * appr_ratio_));
+		p2_ = calc_l2_prob(w_ / (2.0f * ratio));
 	}
 	else {
 		if (fabs(p_ - 0.8f) < FLOATZERO) {
@@ -62,7 +62,7 @@ QALSH::QALSH(						// constructor
 		else {
 			w_ = (w2 - w1) * p_ + (2.0f * w1 - w2);
 		}
-		new_stable_prob(p_, zeta_, appr_ratio_, 1.0f, w_, 1000000, p1_, p2_);
+		new_stable_prob(p_, zeta_, ratio, 1.0f, w_, 1000000, p1_, p2_);
 	}
 
 	float para1 = sqrt(log(2.0f / beta_));
@@ -139,11 +139,11 @@ inline float QALSH::calc_l2_prob(	// calc prob of L2 dist
 
 // -----------------------------------------------------------------------------
 inline float QALSH::calc_hash_value( // calc hash value
-	int   table_id,						// hash table id
+	int   tid,							// hash table id
 	const float *data)					// one data/query object
 {
 	float ret  = 0.0f;
-	int   base = table_id * dim_;
+	int   base = tid * dim_;
 	for (int i = 0; i < dim_; ++i) {
 		ret += (a_array_[base + i] * data[i]);
 	}
@@ -175,7 +175,7 @@ void QALSH::display()				// display parameters
 	printf("    n     = %d\n",   n_pts_);
 	printf("    d     = %d\n",   dim_);
 	printf("    p     = %.1f\n", p_);
-	printf("    zeta  = %f\n",   zeta_);
+	printf("    zeta  = %.1f\n", zeta_);
 	printf("    ratio = %.1f\n", appr_ratio_);
 	printf("    w     = %f\n",   w_);
 	printf("    p1    = %f\n",   p1_);
@@ -411,7 +411,7 @@ int QALSH::knn(						// k-NN search
 					}
 					if (rdist > bucket_width || rdist > range) break;
 
-					int id = tables_[j][rpos_[j]].id_;
+					int id = table[rpos_[j]].id_;
 					if (++freq_[id] >= l_ && !checked_[id]) {
 						checked_[id] = true;
 						float dist = calc_lp_dist(dim_, p_, data_[id], query);
@@ -444,7 +444,6 @@ int QALSH::knn(						// k-NN search
 			if (num_bucket >= m_ || num_range >= m_) break;
 			if (dist_cnt >= candidates) break;
 		}
-
 		// ---------------------------------------------------------------------
 		//  step 3: terminating conditions
 		// ---------------------------------------------------------------------
@@ -461,14 +460,14 @@ int QALSH::knn(						// k-NN search
 
 // -----------------------------------------------------------------------------
 int QALSH::binary_search_pos(		// binary search position
-	int table_id,						// hash table is
+	int   tid,							// hash table is
 	float value)						// hash value
 {
 	int left = 0;
 	int right = n_pts_ - 1;
 	int mid = 0;
 
-	Result *table = tables_[table_id];
+	Result *table = tables_[tid];
 	while (left < right) {
 		mid = (left + right + 1) / 2;
 		if (fabs(table[mid].key_ - value) < FLOATZERO) {

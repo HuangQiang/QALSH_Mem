@@ -194,8 +194,7 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 
 	for (int i = 0; i < n; ++i) {
 		for (int j = 0; j < d; ++j) {
-			float x = shift_data[i][j];
-			norm[i] += x * x;
+			norm[i] += SQR(shift_data[i][j]);
 		}
 		norm[i] = sqrt(norm[i]);
 
@@ -232,8 +231,7 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 
 				float distortion = 0.0f;
 				for (int k = 0; k < d; ++k) {
-					float x = shift_data[j][k] - offset * projection[k];
-					distortion += x * x;
+					distortion += SQR(shift_data[j][k] - offset * projection[k]);
 				}
 
 				score_pair[j].key_ = offset * offset - distortion;
@@ -253,11 +251,10 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 		//  collect the objects that are well-represented by this projection
 		// ---------------------------------------------------------------------
 		qsort(score_pair, n, sizeof(Result), ResultCompDesc);
-
+		int base = i * M_;
 		for (int j = 0; j < M_; ++j) {
 			int id = score_pair[j].id_;
-
-			sample_id[i * M_ + j] = new_order_id[id];
+			sample_id[base + j] = new_order_id[id];
 			norm[id] = -1.0f;
 		}
 
@@ -267,10 +264,8 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 		max_id   = -1;
 		max_norm = -1.0f;
 		for (int j = 0; j < n; ++j) {
-			if (norm[j] > 0.0f && close_angle[j]) {
-				norm[j] = 0.0f;
-			}
-
+			if (norm[j] > 0.0f && close_angle[j]) norm[j] = 0.0f;
+			
 			if (norm[j] > max_norm) {
 				max_norm = norm[j];
 				max_id   = j;

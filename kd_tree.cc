@@ -13,11 +13,8 @@ KD_Tree::KD_Tree(					// constructor
 	dim_          = d;
 	kd_leaf_size_ = kd_leaf_size;
 	data_         = data;
-
-	object_id_ = new int[n_pts_];
-	for (int i = 0; i < n_pts_; ++i) {
-		object_id_[i] = i;
-	}
+	object_id_    = new int[n_pts_];
+	for (int i = 0; i < n_pts_; ++i) object_id_[i] = i;
 
 	KD_Rect bnd_box(dim_);
 	calc_encl_rect(bnd_box);
@@ -28,7 +25,6 @@ KD_Tree::KD_Tree(					// constructor
 		bnd_box_low_[i] = bnd_box.low_[i];
 		bnd_box_high_[i] = bnd_box.high_[i];
 	}
-
 	root_ = rkd_tree(n_pts_, object_id_, bnd_box);
 }
 
@@ -93,7 +89,7 @@ KD_Node* KD_Tree::rkd_tree(			// recursive build kd-tree
 		// ---------------------------------------------------------------------
 		//  save bounds for cutting dimension
 		// ---------------------------------------------------------------------
-		float low_val = bnd_box.low_[cut_dim];
+		float low_val  = bnd_box.low_[cut_dim];
 		float high_val = bnd_box.high_[cut_dim];
 
 		// ---------------------------------------------------------------------
@@ -212,8 +208,7 @@ void KD_Tree::calc_stat(			// calc median and variance value
 	// -------------------------------------------------------------------------
 	variance = 0.0f;
 	for (int i = 0; i < n; ++i) {
-		float diff = data_[object_id[i]][d] - mean;
-		variance += diff * diff;
+		variance += SQR(data_[object_id[i]][d] - mean);
 	}
 	variance /= n;
 }
@@ -280,12 +275,8 @@ void KD_Tree::search(				// k-NN search
 	const float *query,					// query object
 	MinK_List *list)					// k-NN results (return)
 {
-	assert(top_k <= n_pts_);
-
-	ratio = POW(ratio);
-	float box_dist = calc_box_dist(query);
-
-	root_->search(box_dist, ratio, query, list);
+	// assert(top_k <= n_pts_);
+	root_->search(calc_box_dist(query), SQR(ratio), query, list);
 }
 
 // -----------------------------------------------------------------------------
@@ -293,15 +284,12 @@ float KD_Tree::calc_box_dist(		// compute distance from point to box
 	const float* query)					// query point
 {
 	float dist = 0.0f;
-	float tmp  = 0.0f;
 	for (int i = 0; i < dim_; ++i) {
 		if (query[i] < bnd_box_low_[i]) {
-			tmp = bnd_box_low_[i] - query[i];
-			dist = SUM(dist, POW(tmp));
+			dist += SQR(bnd_box_low_[i] - query[i]);
 		}
 		else if (query[i] > bnd_box_high_[i]) {
-			tmp = query[i] - bnd_box_high_[i];
-			dist = SUM(dist, POW(tmp));
+			dist += SQR(query[i] - bnd_box_high_[i]);
 		}
 	}
 	return dist;
