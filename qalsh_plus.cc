@@ -205,7 +205,7 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 		}
 	}
 
-	vector<bool> close_angle(n);
+	vector<bool>  close_angle(n);
 	vector<float> projection(d);
 	Result *score_pair = new Result[n];
 

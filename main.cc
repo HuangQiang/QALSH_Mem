@@ -46,7 +46,7 @@ void usage() 						// display the usage of QALSH+
 // -----------------------------------------------------------------------------
 int main(int nargs, char **args)
 {
-	srand((unsigned)time(NULL));	// set the random seed
+	srand(6);						// srand((unsigned)time(NULL));
 	// usage();
 
 	char   data_set[200];			// address of data  set

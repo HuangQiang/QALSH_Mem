@@ -117,24 +117,6 @@ QALSH::QALSH(						// constructor
 }
 
 // -----------------------------------------------------------------------------
-QALSH::~QALSH()						// destructor
-{
-	delete[] a_array_;     a_array_     = NULL;
-	delete[] freq_;        freq_        = NULL;
-	delete[] lpos_;        lpos_        = NULL;
-	delete[] rpos_;        rpos_        = NULL;
-	delete[] checked_;     checked_     = NULL;
-	delete[] bucket_flag_; bucket_flag_ = NULL;
-	delete[] range_flag_;  range_flag_  = NULL;
-	delete[] q_val_;       q_val_       = NULL;
-
-	for (int i = 0; i < m_; ++i) {
-		delete[] tables_[i]; tables_[i] = NULL;
-	}
-	delete[] tables_; tables_ = NULL;
-}
-
-// -----------------------------------------------------------------------------
 inline float QALSH::calc_l0_prob(	// calc prob of L1/2 dist
 	float x)							// x = w / (2.0 * r)
 {
@@ -166,6 +148,24 @@ inline float QALSH::calc_hash_value( // calc hash value
 		ret += (a_array_[base + i] * data[i]);
 	}
 	return ret;
+}
+
+// -----------------------------------------------------------------------------
+QALSH::~QALSH()						// destructor
+{
+	delete[] a_array_;     a_array_     = NULL;
+	delete[] freq_;        freq_        = NULL;
+	delete[] lpos_;        lpos_        = NULL;
+	delete[] rpos_;        rpos_        = NULL;
+	delete[] checked_;     checked_     = NULL;
+	delete[] bucket_flag_; bucket_flag_ = NULL;
+	delete[] range_flag_;  range_flag_  = NULL;
+	delete[] q_val_;       q_val_       = NULL;
+
+	for (int i = 0; i < m_; ++i) {
+		delete[] tables_[i]; tables_[i] = NULL;
+	}
+	delete[] tables_; tables_ = NULL;
 }
 
 // -----------------------------------------------------------------------------
