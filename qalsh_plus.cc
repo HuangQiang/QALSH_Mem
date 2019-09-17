@@ -75,7 +75,8 @@ int QALSH_PLUS::bulkload(			// bulkloading
 		// ---------------------------------------------------------------------
 		//  calculate shift data
 		// ---------------------------------------------------------------------
-		int n = block_size[i]; assert(n > sample_size);
+		int n = block_size[i]; 
+		assert(n > sample_size);
 
 		vector<vector<float> > shift_data(n, vector<float>(dim_, 0.0f));
 		calc_shift_data(n, dim_, (const float **)new_order_data_+start, shift_data);

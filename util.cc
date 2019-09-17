@@ -143,48 +143,210 @@ int read_ground_truth(				// read ground truth results from disk
 // -----------------------------------------------------------------------------
 float calc_lp_dist(					// calc L_{p} norm
 	int   dim,							// dimension
-	float p,							// the p value of Lp norm, p in (0, 2]
+	float p,							// the p value of Lp norm, p in (0,2]
+	float threshold,					// threshold
 	const float *vec1,					// 1st point
 	const float *vec2)					// 2nd point
 {
-	float ret  = 0.0f;
-
-	// ---------------------------------------------------------------------
-	//  calc L_{0.5} norm
-	// ---------------------------------------------------------------------
-	if (fabs(p - 0.5f) < FLOATZERO) {
-		for (int i = 0; i < dim; ++i) {
-			ret += sqrt(fabs(vec1[i] - vec2[i]));
-		}
-		return ret * ret;
+	if (fabs(p - 2.0f) < FLOATZERO) {
+		return sqrt(calc_l2_sqr(dim, SQR(threshold), vec1, vec2));
 	}
-	// ---------------------------------------------------------------------
-	//  calc L_{1.0} norm
-	// ---------------------------------------------------------------------
 	else if (fabs(p - 1.0f) < FLOATZERO) {
-		for (int i = 0; i < dim; ++i) {
-			ret += fabs(vec1[i] - vec2[i]);
-		}
-		return ret;
+		return calc_l1_dist(dim, threshold, vec1, vec2);
 	}
-	// ---------------------------------------------------------------------
-	//  calc L_{2.0} norm
-	// ---------------------------------------------------------------------
-	else if (fabs(p - 2.0f) < FLOATZERO) {
-		for (int i = 0; i < dim; ++i) {
-			ret += SQR(vec1[i] - vec2[i]);
-		}
-		return sqrt(ret);
+	else if (fabs(p - 0.5f) < FLOATZERO) {
+		float ret = calc_l0_sqrt(dim, sqrt(threshold), vec1, vec2);
+		return SQR(ret);
 	}
-	// ---------------------------------------------------------------------
-	//  calc other L_{p} norm (general way)
-	// ---------------------------------------------------------------------
 	else {
-		for (int i = 0; i < dim; ++i) {
-			ret += pow(fabs(vec1[i] - vec2[i]), p);
-		}
+		float ret = calc_lp_pow(dim, p, pow(threshold, p), vec1, vec2);
 		return pow(ret, 1.0f / p);
 	}
+}
+
+// -----------------------------------------------------------------------------
+float calc_l2_sqr(					// calc l2 square distance
+	int   dim,							// dimension
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2)					// 2nd point
+{
+	unsigned d = dim & ~unsigned(7);
+	const float *aa = p1, *end_a = aa + d;
+	const float *bb = p2, *end_b = bb + d;
+
+	float r = 0.0f;
+	float r0, r1, r2, r3, r4, r5, r6, r7;
+
+	const float *a = end_a, *b = end_b;
+
+	r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = 0.0f;
+	switch (dim & 7) {
+		case 7: r6 = SQR(a[6] - b[6]);
+		case 6: r5 = SQR(a[5] - b[5]);
+		case 5: r4 = SQR(a[4] - b[4]);
+		case 4: r3 = SQR(a[3] - b[3]);
+		case 3: r2 = SQR(a[2] - b[2]);
+		case 2: r1 = SQR(a[1] - b[1]);
+		case 1: r0 = SQR(a[0] - b[0]);
+	}
+
+	a = aa; b = bb;
+	for (; a < end_a; a += 8, b += 8) {
+		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+		if (r > threshold) return r;
+
+		r0 = SQR(a[0] - b[0]);
+		r1 = SQR(a[1] - b[1]);
+		r2 = SQR(a[2] - b[2]);
+		r3 = SQR(a[3] - b[3]);
+		r4 = SQR(a[4] - b[4]);
+		r5 = SQR(a[5] - b[5]);
+		r6 = SQR(a[6] - b[6]);
+		r7 = SQR(a[7] - b[7]);
+	}
+	r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+	
+	return r;
+}
+
+// -----------------------------------------------------------------------------
+float calc_l1_dist(					// calc Manhattan distance
+	int   dim,							// dimension
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2)					// 2nd point
+{
+	unsigned d = dim & ~unsigned(7);
+	const float *aa = p1, *end_a = aa + d;
+	const float *bb = p2, *end_b = bb + d;
+
+	float r = 0.0f;
+	float r0, r1, r2, r3, r4, r5, r6, r7;
+
+	const float *a = end_a, *b = end_b;
+
+	r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = 0.0f;
+	switch (dim & 7) {
+		case 7: r6 = fabs(a[6] - b[6]);
+		case 6: r5 = fabs(a[5] - b[5]);
+		case 5: r4 = fabs(a[4] - b[4]);
+		case 4: r3 = fabs(a[3] - b[3]);
+		case 3: r2 = fabs(a[2] - b[2]);
+		case 2: r1 = fabs(a[1] - b[1]);
+		case 1: r0 = fabs(a[0] - b[0]);
+	}
+
+	a = aa; b = bb;
+	for (; a < end_a; a += 8, b += 8) {
+		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+		if (r > threshold) return r;
+
+		r0 = fabs(a[0] - b[0]);
+		r1 = fabs(a[1] - b[1]);
+		r2 = fabs(a[2] - b[2]);
+		r3 = fabs(a[3] - b[3]);
+		r4 = fabs(a[4] - b[4]);
+		r5 = fabs(a[5] - b[5]);
+		r6 = fabs(a[6] - b[6]);
+		r7 = fabs(a[7] - b[7]);
+	}
+	r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+	
+	return r;
+}
+
+// -----------------------------------------------------------------------------
+float calc_l0_sqrt(					// calc L_{0.5} sqrt distance
+	int   dim,							// dimension
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2)					// 2nd point
+{
+	unsigned d = dim & ~unsigned(7);
+	const float *aa = p1, *end_a = aa + d;
+	const float *bb = p2, *end_b = bb + d;
+
+	float r = 0.0f;
+	float r0, r1, r2, r3, r4, r5, r6, r7;
+
+	const float *a = end_a, *b = end_b;
+
+	r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = 0.0f;
+	switch (dim & 7) {
+		case 7: r6 = sqrt(fabs(a[6] - b[6]));
+		case 6: r5 = sqrt(fabs(a[5] - b[5]));
+		case 5: r4 = sqrt(fabs(a[4] - b[4]));
+		case 4: r3 = sqrt(fabs(a[3] - b[3]));
+		case 3: r2 = sqrt(fabs(a[2] - b[2]));
+		case 2: r1 = sqrt(fabs(a[1] - b[1]));
+		case 1: r0 = sqrt(fabs(a[0] - b[0]));
+	}
+
+	a = aa; b = bb;
+	for (; a < end_a; a += 8, b += 8) {
+		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+		if (r > threshold) return r;
+
+		r0 = sqrt(fabs(a[0] - b[0]));
+		r1 = sqrt(fabs(a[1] - b[1]));
+		r2 = sqrt(fabs(a[2] - b[2]));
+		r3 = sqrt(fabs(a[3] - b[3]));
+		r4 = sqrt(fabs(a[4] - b[4]));
+		r5 = sqrt(fabs(a[5] - b[5]));
+		r6 = sqrt(fabs(a[6] - b[6]));
+		r7 = sqrt(fabs(a[7] - b[7]));
+	}
+	r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+	
+	return r;
+}
+
+// -----------------------------------------------------------------------------
+float calc_lp_pow(					// calc L_p pow_p distance
+	int   dim,							// dimension
+	float p,							// the p value of L_p norm, p in (0,2]
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2)					// 2nd point
+{
+	unsigned d = dim & ~unsigned(7);
+	const float *aa = p1, *end_a = aa + d;
+	const float *bb = p2, *end_b = bb + d;
+
+	float r = 0.0f;
+	float r0, r1, r2, r3, r4, r5, r6, r7;
+
+	const float *a = end_a, *b = end_b;
+
+	r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = 0.0f;
+	switch (dim & 7) {
+		case 7: r6 = pow(fabs(a[6] - b[6]), p);
+		case 6: r5 = pow(fabs(a[5] - b[5]), p);
+		case 5: r4 = pow(fabs(a[4] - b[4]), p);
+		case 4: r3 = pow(fabs(a[3] - b[3]), p);
+		case 3: r2 = pow(fabs(a[2] - b[2]), p);
+		case 2: r1 = pow(fabs(a[1] - b[1]), p);
+		case 1: r0 = pow(fabs(a[0] - b[0]), p);
+	}
+
+	a = aa; b = bb;
+	for (; a < end_a; a += 8, b += 8) {
+		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+		if (r > threshold) return r;
+
+		r0 = pow(fabs(a[0] - b[0]), p);
+		r1 = pow(fabs(a[1] - b[1]), p);
+		r2 = pow(fabs(a[2] - b[2]), p);
+		r3 = pow(fabs(a[3] - b[3]), p);
+		r4 = pow(fabs(a[4] - b[4]), p);
+		r5 = pow(fabs(a[5] - b[5]), p);
+		r6 = pow(fabs(a[6] - b[6]), p);
+		r7 = pow(fabs(a[7] - b[7]), p);
+	}
+	r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+	
+	return r;
 }
 
 // -----------------------------------------------------------------------------
@@ -285,7 +447,7 @@ void k_nn_search(					// k-NN search
 		float kdist = MAXREAL;
 		list->reset();
 		for (int j = 0; j < n; ++j) {
-			float dist = calc_lp_dist(d, p, data[j], query[i]);
+			float dist = calc_lp_dist(d, p, kdist, data[j], query[i]);
 			kdist = list->insert(dist, j + 1);
 		}
 

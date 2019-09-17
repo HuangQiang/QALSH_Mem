@@ -51,8 +51,38 @@ int read_ground_truth(				// read k-NN ground truth
 float calc_lp_dist(					// calc L_{p} norm
 	int   dim,							// dimension
 	float p,							// the p value of Lp norm, p in (0, 2]
+	float threshold,					// threshold
 	const float *vec1,					// 1st point
 	const float *vec2);					// 2nd point
+
+// -----------------------------------------------------------------------------
+float calc_l2_sqr(					// calc l2 square distance
+	int   dim,							// dimension
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2);					// 2nd point
+
+// -----------------------------------------------------------------------------
+float calc_l1_dist(					// calc Manhattan distance
+	int   dim,							// dimension
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2);					// 2nd point
+
+// -----------------------------------------------------------------------------
+float calc_l0_sqrt(					// calc L_{0.5} sqrt distance
+	int   dim,							// dimension
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2);					// 2nd point
+
+// -----------------------------------------------------------------------------
+float calc_lp_pow(					// calc L_p pow_p distance
+	int   dim,							// dimension
+	float p,							// the p value of Lp norm, p in (0,2]
+	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2);					// 2nd point
 
 // -----------------------------------------------------------------------------
 float calc_recall(					// calc recall (percentage)

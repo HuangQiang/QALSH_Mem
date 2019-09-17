@@ -48,7 +48,7 @@ protected:
 	int    n_pts_;					// cardinality
 	int    dim_;					// dimensionality
 	float  p_;						// l_p distance
-	float  zeta_;					// a parameter of p-stable distr.
+	float  zeta_;					// parameter of p-stable distr.
 	float  appr_ratio_;				// approximation ratio
 	const  float **data_;			// data objects
 

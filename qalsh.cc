@@ -255,7 +255,7 @@ int QALSH::knn(						// k-nn search
 					int id = table[lpos_[j]].id_;
 					if (++freq_[id] >= l_ && !checked_[id]) {
 						checked_[id] = true;
-						float dist = calc_lp_dist(dim_, p_, data_[id], query);
+						float dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
 						kdist = list->insert(dist, id);
 
 						if (++dist_cnt >= candidates) break;
@@ -279,7 +279,7 @@ int QALSH::knn(						// k-nn search
 					int id = table[rpos_[j]].id_;
 					if (++freq_[id] >= l_ && !checked_[id]) {
 						checked_[id] = true;
-						float dist = calc_lp_dist(dim_, p_, data_[id], query);
+						float dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
 						kdist = list->insert(dist, id);
 
 						if (++dist_cnt >= candidates) break;
@@ -390,7 +390,7 @@ int QALSH::knn(						// k-NN search
 					int id = table[lpos_[j]].id_;
 					if (++freq_[id] >= l_ && !checked_[id]) {
 						checked_[id] = true;
-						float dist = calc_lp_dist(dim_, p_, data_[id], query);
+						float dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
 						kdist = list->insert(dist, object_id[id]);
 
 						if (++dist_cnt >= candidates) break;
@@ -414,8 +414,8 @@ int QALSH::knn(						// k-NN search
 					int id = table[rpos_[j]].id_;
 					if (++freq_[id] >= l_ && !checked_[id]) {
 						checked_[id] = true;
-						float dist = calc_lp_dist(dim_, p_, data_[id], query);
-						list->insert(dist, object_id[id]);
+						float dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
+						kdist = list->insert(dist, object_id[id]);
 
 						if (++dist_cnt >= candidates) break;
 					}
@@ -463,9 +463,9 @@ int QALSH::binary_search_pos(		// binary search position
 	int   tid,							// hash table is
 	float value)						// hash value
 {
-	int left = 0;
+	int left  = 0;
 	int right = n_pts_ - 1;
-	int mid = 0;
+	int mid   = 0;
 
 	Result *table = tables_[tid];
 	while (left < right) {
