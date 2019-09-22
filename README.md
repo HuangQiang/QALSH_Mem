@@ -73,7 +73,7 @@ If you would like to get more information to run other algorithms, please check 
 
 If you use this package for publications, please cite the papers as follows.
 
-```bash
+```bib
 @article{huang2017query,
     title={Query-aware locality-sensitive hashing scheme for $$ l\_p $$ norm}
     author={Huang, Qiang and Feng, Jianlin and Fang, Qiong and Ng, Wilfred and Wang, Wei},
