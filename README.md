@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This package provides two internal LSH schemes ```QALSH``` and QALSH<sup>+</sup> for ```c-Approximate Nearest Neighbor (c-ANN)``` search under l<sub>p</sub> norm from the following two papers, where $$p \in (0, 2]$$.
+This package provides two internal LSH schemes QALSH and QALSH<sup>+</sup> for ```c-Approximate Nearest Neighbor (c-ANN)``` search under l<sub>p</sub> norm from the following two papers, where 0 < p <= 2.
 
 ```bash
 Qiang Huang, Jianlin Feng, Yikai Zhang, Qiong Fang, Wilfred Ng. Query-Aware
@@ -60,7 +60,7 @@ and Linear_Scan for c-ANN search. The parameters are introduced as follows.
   -op     string     output path
 ```
 
-We provide the scripts to repeat experiments reported in VLDBJ 2017. A quick example is shown as follows (run QALSH<sup>+</sup> and ```QALSH``` on ```Mnist```, where ```p = 2.0```):
+We provide the scripts to repeat experiments reported in VLDBJ 2017. A quick example is shown as follows (run QALSH<sup>+</sup> and QALSH on ```Mnist```, where ```p = 2.0```):
 
 ```bash
 ./qalsh -alg 1 -n 60000 -qn 100 -d 50 -leaf 4000 -L 30 -M 10 -p 2.0 -z 0.0 -c 2.0 -ds data/Mnist/Mnist.ds -qs data/Mnist/Mnist.q -ts data/Mnist/Mnist.gt2.0 -op results/Mnist/L2.0/
@@ -70,7 +70,7 @@ We provide the scripts to repeat experiments reported in VLDBJ 2017. A quick exa
 
 If you would like to get more information to run other algorithms, please check the scripts in the package. When you run the package, please ensure that the path for the dataset, query set, and truth set is correct. Since the package will automatically create folder for the output path, please keep the path as short as possible.
 
-## Related publication
+## Related Publications
 
 If you use this package for publications, please cite the papers as follows.
 
