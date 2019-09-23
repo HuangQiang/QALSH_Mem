@@ -13,7 +13,7 @@ extern float g_recall;				// global parameter: recall
 // -----------------------------------------------------------------------------
 //  struct Result
 // -----------------------------------------------------------------------------
-struct Result {						// structure for furthest neighbor / hash value
+struct Result {						// structure 
 	float key_;							// distance / random projection value
 	int   id_;							// object id
 };
@@ -86,13 +86,13 @@ float calc_lp_pow(					// calc L_p pow_p distance
 
 // -----------------------------------------------------------------------------
 float calc_recall(					// calc recall (percentage)
-	int k,								// top-k value
+	int   k,							// top-k value
 	const Result *R,					// ground truth results 
 	MinK_List *list);					// results returned by algorithms
 
 // -----------------------------------------------------------------------------
 float calc_recall(					// calc recall (percentage)
-	int k,								// top-k value
+	int   k,							// top-k value
 	const Result *R,					// ground truth results 
 	const Result *result);				// results returned by algorithms
 

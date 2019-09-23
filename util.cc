@@ -390,7 +390,7 @@ int ground_truth(					// find ground truth
 	gettimeofday(&g_start_time, NULL);
 	FILE *fp = fopen(truth_set, "w");
 	if (!fp) {
-		printf("Could not create %s.\n", truth_set);
+		printf("Could not create %s\n", truth_set);
 		return 1;
 	}
 

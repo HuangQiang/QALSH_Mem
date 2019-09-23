@@ -16,7 +16,7 @@ int linear_scan(					// k-NN search by linear scan
 
 	FILE *fp = fopen(output_set, "a+");
 	if (!fp) {
-		printf("Could not create %s.\n", output_set);
+		printf("Could not create %s\n", output_set);
 		return 1;
 	}
 
@@ -38,8 +38,7 @@ int linear_scan(					// k-NN search by linear scan
 		g_ratio  = 0.0f;
 		g_recall = 0.0f;
 		for (int i = 0; i < qn; ++i) {
-			g_recall += calc_recall(top_k, (const Result*) R[i], 
-				(const Result *) result[i]);
+			g_recall += calc_recall(top_k, R[i], (const Result *) result[i]);
 
 			float ratio = 0.0f;
 			for (int j = 0; j < top_k; ++j) {
@@ -87,9 +86,6 @@ int qalsh_plus(						// k-NN search by qalsh+
 	const Result **R,					// truth set
 	const char *out_path)				// output path
 {
-	// -------------------------------------------------------------------------
-	//  indexing
-	// -------------------------------------------------------------------------
 	char output_set[200];
 	sprintf(output_set, "%sqalsh_plus_mem.out", out_path);
 
@@ -99,6 +95,9 @@ int qalsh_plus(						// k-NN search by qalsh+
 		return 1;
 	}
 
+	// -------------------------------------------------------------------------
+	//  indexing
+	// -------------------------------------------------------------------------
 	gettimeofday(&g_start_time, NULL);
 	QALSH_PLUS *lsh = new QALSH_PLUS(n, d, leaf, L, M, p, zeta, ratio, data);
 	lsh->display();
