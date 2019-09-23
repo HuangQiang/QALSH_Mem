@@ -39,7 +39,7 @@ We use four real-life datasets [Sift](https://drive.google.com/open?id=1Q3_dnblo
 ```bash
 Usage: qalsh [OPTIONS]
 
-This package supports 4 options to evaluate the performance of QALSH, QALSH+,
+This package supports 4 options to evaluate the performance of QALSH, QALSH^+,
 and Linear_Scan for c-ANN search. The parameters are introduced as follows.
 
   -alg    integer    options of algorithms (0 - 3)
@@ -62,8 +62,10 @@ and Linear_Scan for c-ANN search. The parameters are introduced as follows.
 We provide the scripts to repeat experiments reported in VLDBJ 2017. A quick example is shown as follows (run QALSH<sup>+</sup> and QALSH on ```Mnist```, where ```p = 2.0```):
 
 ```bash
+# QALSH^+
 ./qalsh -alg 1 -n 60000 -qn 100 -d 50 -leaf 4000 -L 30 -M 10 -p 2.0 -z 0.0 -c 2.0 -ds data/Mnist/Mnist.ds -qs data/Mnist/Mnist.q -ts data/Mnist/Mnist.gt2.0 -op results/Mnist/L2.0/
 
+# QALSH
 ./qalsh -alg 2 -n 60000 -qn 100 -d 50 -p 2.0 -z 0.0 -c 2.0 -ds data/Mnist/Mnist.ds -qs data/Mnist/Mnist.q -ts data/Mnist/Mnist.gt2.0 -op results/Mnist/L2.0/
 ```
 
