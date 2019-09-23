@@ -16,16 +16,16 @@ public:
 	inline void reset() { num_ = 0; }
 
 	// -------------------------------------------------------------------------
-	inline float min_key() { return (num_>0 ? list_[0].key_ : MAXREAL); }
+	inline float min_key() { return (num_ > 0 ? list_[0].key_ : MAXREAL); }
 
 	// -------------------------------------------------------------------------
 	inline float max_key() { return (num_>=k_ ? list_[k_ - 1].key_ : MAXREAL); }
 
 	// -------------------------------------------------------------------------
-	inline float ith_key(int i) { return (i<num_ ? list_[i].key_ : MAXREAL); }
+	inline float ith_key(int i) { return (i < num_ ? list_[i].key_ : MAXREAL); }
 
 	// -------------------------------------------------------------------------
-	inline int ith_id(int i) { return (i<num_ ? list_[i].id_ : MININT); }
+	inline int ith_id(int i) { return (i < num_ ? list_[i].id_ : MININT); }
 
 	// -------------------------------------------------------------------------
 	inline int size() { return num_; }
