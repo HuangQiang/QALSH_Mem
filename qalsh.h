@@ -1,8 +1,8 @@
 #ifndef __QALSH_H
 #define __QALSH_H
 
-#include <vector>
-using namespace std;
+struct Result;
+class  MinK_List;
 
 // -----------------------------------------------------------------------------
 //  Query-Aware Locality-Sensitive Hashing (QALSH) is used to solve the problem 
@@ -40,7 +40,7 @@ public:
 		int top_k,						// top-k value
 		float R,						// limited search range
 		const float *query,				// input query object
-		const vector<int> &object_id,	// object id mapping
+		const std::vector<int> &object_id, // object id mapping
 		MinK_List *list);				// k-NN results (return)
 
 protected:

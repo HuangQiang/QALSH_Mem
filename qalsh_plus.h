@@ -9,7 +9,7 @@ class MinK_List;
 // -----------------------------------------------------------------------------
 struct Blocks {
 	int n_pts_;
-	vector<int> index_;
+	std::vector<int> index_;
 	QALSH *lsh_;
 
 	Blocks() { n_pts_ = -1; lsh_ = NULL; }
@@ -57,7 +57,7 @@ protected:
 
 	int   num_blocks_;				// number of blocks 
 	float **new_order_data_;		// new order data objects
-	vector<Blocks*> blocks_;		// index of blocks
+	std::vector<Blocks*> blocks_;	// index of blocks
 	
 	int   sample_n_pts_;			// number of sample data objects
 	int   *sample_id_to_block_;		// sample data id to block
@@ -71,7 +71,7 @@ protected:
 	// -------------------------------------------------------------------------
 	int kd_tree_partition(			// kd-tree partition 
 		const float **data,				// data objects
-		vector<int> &block_size,		// block size (return)
+		std::vector<int> &block_size,	// block size (return)
 		int *new_order_id);				// new order id (return)
 
 	// -------------------------------------------------------------------------
@@ -79,13 +79,13 @@ protected:
 		int   n,						// number of data objects
 		int   d,						// data dimension
 		const float **data,				// data objects
-		vector<vector<float> > &shift_data); // shift data objects (return)
+		std::vector<std::vector<float> > &shift_data); // shift data objects (return)
 
 	// -------------------------------------------------------------------------
 	int drusilla_select(			// drusilla select
 		int   n,						// number of data objects
 		int   d,						// data dimension
-		const vector<vector<float> > &shift_data, // shift data objects
+		const std::vector<std::vector<float> > &shift_data, // shift data objects
 		const int *new_order_id,		// new order data id
 		int   *sample_id);				// sample data id (return)
 
@@ -93,7 +93,7 @@ protected:
 	int get_block_order(			// get block order
 		int nb,							// number of blocks for search
 		MinK_List *list,				// top-t results from sample data
-		vector<int> &block_order);		// block order (return)
+		std::vector<int> &block_order);	// block order (return)
 };
 
 #endif // QALSH_PLUS

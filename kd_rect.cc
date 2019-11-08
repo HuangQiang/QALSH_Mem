@@ -1,4 +1,7 @@
-#include "headers.h"
+#include <cstring>
+
+#include "def.h"
+#include "kd_rect.h"
 
 // -----------------------------------------------------------------------------
 //	KD_Rect: orthogonal rectangle for bounding rectangle of kd-tree

@@ -1,4 +1,12 @@
-#include "headers.h"
+#include <algorithm>
+#include <sys/time.h>
+
+#include "def.h"
+#include "util.h"
+#include "pri_queue.h"
+#include "qalsh.h"
+#include "qalsh_plus.h"
+#include "ann.h"
 
 // -----------------------------------------------------------------------------
 int linear_scan(					// k-NN search by linear scan

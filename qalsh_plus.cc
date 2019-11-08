@@ -1,4 +1,13 @@
-#include "headers.h"
+#include <algorithm>
+#include <cassert>
+
+#include "def.h"
+#include "util.h"
+#include "pri_queue.h"
+#include "kd_rect.h"
+#include "kd_tree.h"
+#include "qalsh.h"
+#include "qalsh_plus.h"
 
 
 // -----------------------------------------------------------------------------
@@ -39,7 +48,7 @@ int QALSH_PLUS::bulkload(			// bulkloading
 	//  kd-tree partition
 	// -------------------------------------------------------------------------
 	int *new_order_id = new int[n_pts_];
-	vector<int> block_size;
+	std::vector<int> block_size;
 	kd_tree_partition(data, block_size, new_order_id);
 
 	// -------------------------------------------------------------------------
@@ -78,7 +87,7 @@ int QALSH_PLUS::bulkload(			// bulkloading
 		int n = block_size[i]; 
 		assert(n > sample_size);
 
-		vector<vector<float> > shift_data(n, vector<float>(dim_, 0.0f));
+		std::vector<std::vector<float> > shift_data(n, std::vector<float>(dim_, 0.0f));
 		calc_shift_data(n, dim_, (const float **)new_order_data_+start, shift_data);
 		
 		// ---------------------------------------------------------------------
@@ -136,7 +145,7 @@ int QALSH_PLUS::bulkload(			// bulkloading
 // -----------------------------------------------------------------------------
 int QALSH_PLUS::kd_tree_partition(	// kd-tree partition
 	const float **data,					// data objects
-	vector<int> &block_size,			// block size
+	std::vector<int> &block_size,		// block size
 	int *new_order_id)					// new order id
 {
 	KD_Tree *tree = new KD_Tree(n_pts_, dim_, leaf_, data);
@@ -151,12 +160,12 @@ int QALSH_PLUS::calc_shift_data(	// calculate shift data objects
 	int   n,							// number of data points
 	int   d,							// dimensionality
 	const float **data,					// data objects
-	vector<vector<float> > &shift_data) // shift data objects (return)
+	std::vector<std::vector<float> > &shift_data) // shift data objects (return)
 {
 	// -------------------------------------------------------------------------
 	//  calculate the centroid of data objects
 	// -------------------------------------------------------------------------
-	vector<float> centroid(d, 0.0f);
+	std::vector<float> centroid(d, 0.0f);
 	for (int i = 0; i < n; ++i) {
 		for (int j = 0; j < d; ++j) {
 			centroid[j] += data[i][j];
@@ -182,7 +191,7 @@ int QALSH_PLUS::calc_shift_data(	// calculate shift data objects
 int QALSH_PLUS::drusilla_select(	// drusilla select
 	int   n,							// number of objects
 	int   d,							// data dimension
-	const vector<vector<float> > &shift_data, // shift data objects
+	const std::vector<std::vector<float> > &shift_data, // shift data objects
 	const int *new_order_id,			// new order data id
 	int   *sample_id)					// sample data id (return)
 {
@@ -191,7 +200,7 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 	// -------------------------------------------------------------------------
 	int   max_id   = -1;
 	float max_norm = -1.0f;
-	vector<float> norm(n, 0.0f);
+	std::vector<float> norm(n, 0.0f);
 
 	for (int i = 0; i < n; ++i) {
 		for (int j = 0; j < d; ++j) {
@@ -205,8 +214,8 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 		}
 	}
 
-	vector<bool>  close_angle(n);
-	vector<float> projection(d);
+	std::vector<bool>  close_angle(n);
+	std::vector<float> projection(d);
 	Result *score_pair = new Result[n];
 
 	for (int i = 0; i < L_; ++i) {
@@ -333,7 +342,7 @@ int QALSH_PLUS::knn(				// c-k-ANN search
 	MinK_List *sample_list = new MinK_List(MAXK);
 	lsh_->knn(MAXK, query, sample_list);
 
-	vector<int> block_order;
+	std::vector<int> block_order;
 	get_block_order(nb, sample_list, block_order);
 	
 	// -------------------------------------------------------------------------
@@ -356,7 +365,7 @@ int QALSH_PLUS::knn(				// c-k-ANN search
 int QALSH_PLUS::get_block_order(	// get block order
 	int nb,								// number of blocks for search
 	MinK_List *list,					// sample results
-	vector<int> &block_order)			// block order (return)
+	std::vector<int> &block_order)		// block order (return)
 {
 	assert(nb <= num_blocks_);
 

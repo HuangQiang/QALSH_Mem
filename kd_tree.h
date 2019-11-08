@@ -26,7 +26,7 @@ public:
 
 	// -------------------------------------------------------------------------
 	void traversal(					// traversal kd-tree to get leaf info
-		vector<int> &leaf_size,			// leaf size (return)
+		std::vector<int> &leaf_size,	// leaf size (return)
 		int *object_id);				// object id with leaf order (return)
 
 protected:

@@ -1,4 +1,11 @@
-#include "headers.h"
+#include <algorithm>
+#include <cstring>
+
+#include "def.h"
+#include "util.h"
+#include "pri_queue.h"
+#include "random.h"
+#include "qalsh.h"
 
 
 // -----------------------------------------------------------------------------
@@ -325,7 +332,7 @@ int QALSH::knn(						// k-NN search
 	int   top_k,						// top-k value
 	float R,							// limited search range
 	const float *query,					// input query object
-	const vector<int> &object_id,		// object id mapping
+	const std::vector<int> &object_id,	// object id mapping
 	MinK_List *list)					// k-NN results (return)
 {
 	int    candidates = CANDIDATES + top_k - 1; // candidate size
