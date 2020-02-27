@@ -1,8 +1,10 @@
 #ifndef __KD_TREE_H
 #define __KD_TREE_H
 
-class KD_Node;
+#include <vector>
+
 class MinK_List;
+class KD_Node;
 
 // -----------------------------------------------------------------------------
 //	KD_Tree: structure for approximate and exact nearest neighbor search

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 #include <sys/time.h>
 
 #include "def.h"
@@ -119,16 +120,16 @@ int qalsh_plus(						// k-NN search by qalsh+
 	// -------------------------------------------------------------------------
 	//  k-NN search by QALSH+
 	// -------------------------------------------------------------------------
-	int start = 2, end = 10;
-	if (leaf >= 40000) {
-		start = 5; end = 20;
-	}
+	int start = 1;
+	int end = lsh->get_num_blocks();
+	assert(end >= start);
+
 	printf("Top-k NN Search by QALSH+:\n");
 	for (int nb = start; nb <= end; ++nb) {
 		printf("  nb = %d\n", nb);
 		fprintf(fp, "nb = %d\n", nb);
 
-		printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall\n");
+		printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall (%%)\n");
 		for (int num = 0; num < MAX_ROUND; ++num) {
 			gettimeofday(&g_start_time, NULL);
 			int top_k = TOPK[num];
@@ -212,7 +213,7 @@ int qalsh(							// k-NN search by qalsh
 	//  c-k-ANN search
 	// -------------------------------------------------------------------------
 	printf("Top-k NN Search by QALSH:\n");
-	printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall\n");
+	printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall (%%)\n");
 	for (int num = 0; num < MAX_ROUND; ++num) {
 		gettimeofday(&g_start_time, NULL);
 		int top_k = TOPK[num];

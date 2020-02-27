@@ -1,6 +1,8 @@
 #ifndef __QALSH_PLUS_H
 #define __QALSH_PLUS_H
 
+#include <vector>
+
 class QALSH;
 class MinK_List;
 
@@ -37,6 +39,9 @@ public:
 
 	// -------------------------------------------------------------------------
 	void display();					// display parameters
+
+	// -------------------------------------------------------------------------
+	inline int get_num_blocks() { return num_blocks_; }
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN seach	

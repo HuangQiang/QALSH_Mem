@@ -1,6 +1,8 @@
 #ifndef __QALSH_H
 #define __QALSH_H
 
+#include <vector>
+
 struct Result;
 class  MinK_List;
 

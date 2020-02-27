@@ -5,7 +5,7 @@
 This package provides two internal LSH schemes QALSH and QALSH<sup>+</sup> for ```c-Approximate Nearest Neighbor (c-ANN)``` search under l<sub>p</sub> norm from the following two papers, where 0 < p <= 2.
 
 ```bash
-Qiang Huang, Jianlin Feng, Yikai Zhang, Qiong Fang, Wilfred Ng. Query-Aware  Locality-Sensitive
+Qiang Huang, Jianlin Feng, Yikai Zhang, Qiong Fang, Wilfred Ng. Query-Aware Locality-Sensitive
 Hashing for Approximate Nearest Neighbor Search. Proceedings of the VLDB Endowment (PVLDB),
 9(1): 1-12, 2015.
 
@@ -25,9 +25,9 @@ $ make
 
 ## Datasets
 
-We use four real-life datasets [Sift](https://drive.google.com/open?id=1Q3_dnblolD9GVis7OakP2mrqmBApytEL), [Gist](https://drive.google.com/open?id=1M3hJl5slY_pu50IQ7ie-t9E6RvzMizYT), [Trevi](https://drive.google.com/open?id=1RF1FJKWHv3y7W7aBrewnOMrWR15dNbJ3), and [P53](https://drive.google.com/open?id=15mzraPmxNRzcfhXsd_KWBgKclUFUZQEj) for comparison. The statistics of the datasets are summarized in the following table:
+We use four real-life datasets [Sift](https://drive.google.com/open?id=1Q3_dnblolD9GVis7OakP2mrqmBApytEL), [Gist](https://drive.google.com/open?id=1M3hJl5slY_pu50IQ7ie-t9E6RvzMizYT), [Trevi](https://drive.google.com/open?id=1RF1FJKWHv3y7W7aBrewnOMrWR15dNbJ3), and [P53](https://drive.google.com/open?id=15mzraPmxNRzcfhXsd_KWBgKclUFUZQEj) for comparison. The statistics of datasets and queries are summarized in the following table:
 
-| Datasets | #Objects  | #Queries | Dimensionality | Domain Size | Data Size |
+| Datasets | #Data Objects  | #Queries | Dimensionality | Domain Size | Data Size |
 | -------- | --------- | -------- | -------------- | ----------- | --------- |
 | Sift     | 1,000,000 | 100      | 128            | [0, 218]    | 337.8 MB  |
 | Gist     | 1,000,000 | 100      | 960            | [0, 14,772] | 4.0 GB    |
@@ -40,7 +40,7 @@ We use four real-life datasets [Sift](https://drive.google.com/open?id=1Q3_dnblo
 Usage: qalsh [OPTIONS]
 
 This package supports 4 options to evaluate the performance of QALSH, QALSH^+,
-and Linear_Scan for c-ANN search. The parameters are introduced as follows.
+and Linear_Scan for c-k-ANN search. The parameters are introduced as follows.
 
   -alg    integer    options of algorithms (0 - 3)
   -n      integer    cardinality of dataset
@@ -49,17 +49,16 @@ and Linear_Scan for c-ANN search. The parameters are introduced as follows.
   -leaf   integer    leaf size of kd_tree
   -L      integer    number of projections for drusilla_select
   -M      integer    number of candidates  for drusilla_select
-  -nb     integer    number of blocks for c-ANN search
   -p      float      l_{p} norm, where 0 < p <= 2
   -z      float      symmetric factor of p-stable distribution (-1 <= z <= 1)
-  -c      float      approximation ratio for c-ANN search (c > 1)
+  -c      float      approximation ratio for c-k-ANN search (c > 1)
   -ds     string     address of data  set
   -qs     string     address of query set
   -ts     string     address of truth set
   -op     string     output path
 ```
 
-We provide the scripts to repeat experiments reported in VLDBJ 2017. A quick example is shown as follows (run QALSH<sup>+</sup> and QALSH on ```Mnist```, where ```p = 2.0```):
+We provide the scripts to repeat experiments reported in VLDBJ 2017. A quick example is shown as follows (run QALSH<sup>+</sup> and QALSH on ```Mnist``` with ```Euclidean distance```, where ```p = 2.0``` and ```z = 0.0```):
 
 ```bash
 # QALSH^+
@@ -70,6 +69,31 @@ We provide the scripts to repeat experiments reported in VLDBJ 2017. A quick exa
 ```
 
 If you would like to get more information to run other algorithms, please check the scripts in the package. When you run the package, please ensure that the path for the dataset, query set, and truth set is correct. Since the package will automatically create folder for the output path, please keep the path as short as possible.
+
+## Parameter Settings
+
+Finally, we introduce some tricks to set up parameters, i.e., ```leaf```, ```L```, ```M```, ```p```, ```z```, and ```c```.
+
+#### The settings of ```leaf```, ```L```, and ```M```
+
+```leaf``` is the maximum leaf size of kd-tree. Thus, it should be smaller than the cardinality of dataset, i.e., ```leaf < n```. Let ```K``` be the number of blocks after kd-tree partitioning. Since we use kd-tree to divide the whole datasets into blocks, ```K``` is 2<sup>i</sup>, where ```i = ceil(log_2 (n/leaf))```. 
+
+```L```, and ```M``` are two parameters introduced by Drusilla Select. Once ```leaf``` is determined, the actual leaf size n<sub>0</sub> (also known as the number of objects in each block) can be estimated as floor(n / 2<sup>i</sup>) or ceil(n / 2<sup>i</sup>). There are two conditions when we set up ```L``` and ```M```: 
+
+- (1) L * M < n<sub>0</sub>. Since we run drusilla select for each block to select the representative objects, it is a natural condition to restrict its size (L * M) less than n<sub>0</sub>.
+- (2) K * L * M ≈ n<sub>0</sub>. If the sample size (i.e., K*L*M) is large, we can well estimate which blocks are closer to the query, but it will a lot of extra time for estimation. If the sample size is small, the time to determine close blocks can be reduced, but these blocks may not be closer to the query than others. This condition is based on our observation. According to our experiments, we find that creating a sample set with cardinality similar to n<sub>0</sub> can achieve a good trade-off.
+
+#### The settings of ```p```, ```z```, and ```c```
+
+```p``` and ```z``` determine the distance metric and the corresponding p-stable distribution. There are three common settings: 
+
+- (1) Euclidean distance (l<sub>2</sub> distance): we set ```p=2.0```, ```z=0.0``` and apply standard Gaussian distribution.
+- (2) Manhattan distance (l<sub>1</sub> distance): we set ```p=1.0```, ```z=0.0``` and apply standard Cauchy distribution.
+- (3) l<sub>0.5</sub> distance: we set ```p=0.5```, ```z=1.0``` and apply standard Levy distribution. 
+
+In addition, for other l<sub>p</sub> distance, users can set ```0 < p ⩽ 2``` and ```-1 ⩽ z ⩽ 1```.
+
+```c``` is the approximation ratio for c-k-ANN search. We often set ```c=2.0```. But if the dataset is easy, it is also satisfied to set ```c=3.0```.
 
 ## Related Publications
 

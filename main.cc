@@ -20,7 +20,6 @@ void usage() 						// display the usage of QALSH+
 		"    -leaf (integer)   leaf size of kd-tree\n"
 		"    -L	   (integer)   drusilla select: l (number of projections)\n"
 		"    -M    (integer)   drusilla select: m (number of candidates)\n"
-		"    -nb   (integer)   number of blocks to search\n"
 		"    -p    (real)      L_{p} Norm, where p in (0, 2]\n"
 		"    -z    (real)      symmetric factor of p-stable distr., [-1, 1].\n"
 		"    -c    (real)      approximation ratio (c > 1)\n"
@@ -36,12 +35,12 @@ void usage() 						// display the usage of QALSH+
 		"        Params: -alg 0 -n -qn -d -p -ds -qs -ts\n"
 		"\n"
 		"    1 - QALSH+\n"
-		"        Params: -alg 1 -n -qn -d -leaf -L -M -nb -p -z -c -ds -qs -ts -op\n"
+		"        Params: -alg 1 -n -qn -d -leaf -L -M -p -z -c -ds -qs -ts -op\n"
 		"\n"
 		"    2 - QALSH\n"
 		"        Params: -alg 2 -n -qn -d -p -z -c -ds -qs -ts -op\n"
 		"\n"
-		"    3 - Linear-Scan Method\n"
+		"    3 - Linear-Scan\n"
 		"        Params: -alg 3 -n -qn -d -p -ds -qs -ts -op\n"
 		"\n"
 		"--------------------------------------------------------------------\n"
@@ -69,7 +68,6 @@ int main(int nargs, char **args)
 	int    leaf    = -1;	 		// leaf size of kd-tree
 	int    L       = -1;			// number of projection (drusilla)
 	int    M       = -1;			// number of candidates (drusilla)
-	int    nb      = -1;			// number of blocks to search
 	float  p       = -1.0f;			// L_{p} Norm, where p \in (0,2]
 	float  zeta    = -2.0f;			// symmetric factor of p-stable distr. [-1,1]
 	float  ratio   = -1.0f;			// approximation ratio

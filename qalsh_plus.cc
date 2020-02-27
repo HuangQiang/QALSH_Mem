@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <vector>
 
 #include "def.h"
 #include "util.h"
