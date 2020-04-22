@@ -1,12 +1,3 @@
-#include <algorithm>
-#include <cassert>
-#include <sys/time.h>
-
-#include "def.h"
-#include "util.h"
-#include "pri_queue.h"
-#include "qalsh.h"
-#include "qalsh_plus.h"
 #include "ann.h"
 
 // -----------------------------------------------------------------------------
@@ -21,7 +12,7 @@ int linear_scan(					// k-NN search by linear scan
 	const char *out_path)				// output path
 {
 	char output_set[200];
-	sprintf(output_set, "%slinear_mem.out", out_path);
+	sprintf(output_set, "%slinear.out", out_path);
 
 	FILE *fp = fopen(output_set, "a+");
 	if (!fp) {
@@ -32,16 +23,14 @@ int linear_scan(					// k-NN search by linear scan
 	// -------------------------------------------------------------------------
 	//  k-NN search by linear scan
 	// -------------------------------------------------------------------------
+	Result **result = new Result*[qn];
+	for (int i = 0; i < qn; ++i) result[i] = new Result[MAXK];
+
 	printf("Top-k NN by Linear Scan:\n");
 	printf("  Top-k\t\tRatio\t\tTime (ms)\tRecall\n");
 	for (int num = 0; num < MAX_ROUND; ++num) {
 		gettimeofday(&g_start_time, NULL);
-		
 		int top_k = TOPK[num];
-		Result **result = new Result*[qn];
-		for (int i = 0; i < qn; ++i) {
-			result[i] = new Result[top_k];
-		}
 		k_nn_search(n, qn, d, top_k, p, data, query, result);
 
 		g_ratio  = 0.0f;
@@ -55,11 +44,6 @@ int linear_scan(					// k-NN search by linear scan
 			}
 			g_ratio += ratio / top_k;
 		}
-		for (int i = 0; i < qn; ++i) {
-			delete[] result[i]; result[i] = NULL;
-		}
-		delete[] result; result = NULL;
-
 		gettimeofday(&g_end_time, NULL);
 		g_runtime = g_end_time.tv_sec - g_start_time.tv_sec + 
 			(g_end_time.tv_usec - g_start_time.tv_usec) / 1000000.0f;
@@ -68,13 +52,21 @@ int linear_scan(					// k-NN search by linear scan
 		g_recall  = g_recall / qn;
 		g_runtime = (g_runtime * 1000.0f) / qn;
 
-		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
+		printf("  %3d\t\t%.4f\t\t%.3f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
 			g_recall);
 		fprintf(fp, "%d\t%f\t%f\t%f\n", top_k, g_ratio, g_runtime, g_recall);
 	}
 	printf("\n");
 	fprintf(fp, "\n");
 	fclose(fp);
+
+	// -------------------------------------------------------------------------
+	//  release space
+	// -------------------------------------------------------------------------
+	for (int i = 0; i < qn; ++i) {
+		delete[] result[i]; result[i] = NULL;
+	}
+	delete[] result; result = NULL;
 	
 	return 0;
 }
@@ -96,11 +88,11 @@ int qalsh_plus(						// k-NN search by qalsh+
 	const char *out_path)				// output path
 {
 	char output_set[200];
-	sprintf(output_set, "%sqalsh_plus_mem.out", out_path);
+	sprintf(output_set, "%sqalsh_plus.out", out_path);
 
 	FILE *fp = fopen(output_set, "a+");
 	if (!fp) {
-		printf("Could not create %s.\n", output_set);
+		printf("Could not create %s\n", output_set);
 		return 1;
 	}
 
@@ -114,14 +106,16 @@ int qalsh_plus(						// k-NN search by qalsh+
 	gettimeofday(&g_end_time, NULL);
 	float indexing_time = g_end_time.tv_sec - g_start_time.tv_sec + 
 		(g_end_time.tv_usec - g_start_time.tv_usec) / 1000000.0f;
-	printf("Indexing Time = %f Seconds\n\n", indexing_time);
-	fprintf(fp, "Indexing Time = %f Seconds\n\n", indexing_time);
+	printf("Indexing Time = %f Seconds\n", indexing_time);
+	printf("Memory = %f MB\n\n", g_memory / 1048576.0f);
+	
+	fprintf(fp, "index_time = %f Seconds\n", indexing_time);
+	fprintf(fp, "memory     = %f MB\n\n", g_memory / 1048576.0f);
 
 	// -------------------------------------------------------------------------
 	//  k-NN search by QALSH+
 	// -------------------------------------------------------------------------
-	int start = 1;
-	int end = lsh->get_num_blocks();
+	int start = 1, end = lsh->num_blocks_;
 	assert(end >= start);
 
 	printf("Top-k NN Search by QALSH+:\n");
@@ -157,7 +151,7 @@ int qalsh_plus(						// k-NN search by qalsh+
 			g_recall  = g_recall / qn;
 			g_runtime = (g_runtime * 1000.0f) / qn;
 
-			printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
+			printf("  %3d\t\t%.4f\t\t%.3f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
 				g_recall);
 			fprintf(fp, "%d\t%f\t%f\t%f\n", top_k, g_ratio, g_runtime, g_recall);
 		}
@@ -170,6 +164,7 @@ int qalsh_plus(						// k-NN search by qalsh+
 	//  release space
 	// -------------------------------------------------------------------------
 	delete lsh; lsh = NULL;
+	assert(g_memory == 0);
 	
 	return 0;
 }
@@ -187,18 +182,18 @@ int qalsh(							// k-NN search by qalsh
 	const Result **R,					// truth set
 	const char *out_path)				// output path
 {	
-	// -------------------------------------------------------------------------
-	//  indexing
-	// -------------------------------------------------------------------------
 	char output_set[200];
-	sprintf(output_set, "%sqalsh_mem.out", out_path);
+	sprintf(output_set, "%sqalsh.out", out_path);
 
 	FILE *fp = fopen(output_set, "a+");
 	if (!fp) {
-		printf("Could not create %s.\n", output_set);
+		printf("Could not create %s\n", output_set);
 		return 1;
 	}
 
+	// -------------------------------------------------------------------------
+	//  indexing
+	// -------------------------------------------------------------------------
 	gettimeofday(&g_start_time, NULL);
 	QALSH *lsh = new QALSH(n, d, p, zeta, ratio, data);
 	lsh->display();
@@ -206,8 +201,11 @@ int qalsh(							// k-NN search by qalsh
 	gettimeofday(&g_end_time, NULL);
 	float indexing_time = g_end_time.tv_sec - g_start_time.tv_sec + 
 		(g_end_time.tv_usec - g_start_time.tv_usec) / 1000000.0f;
-	printf("Indexing Time = %f Seconds\n\n", indexing_time);
-	fprintf(fp, "Indexing Time = %f Seconds\n\n", indexing_time);
+	printf("Indexing Time = %f Seconds\n", indexing_time);
+	printf("Memory = %f MB\n\n", g_memory / 1048576.0f);
+	
+	fprintf(fp, "index_time = %f Seconds\n", indexing_time);
+	fprintf(fp, "memory     = %f MB\n\n", g_memory / 1048576.0f);
 
 	// -------------------------------------------------------------------------
 	//  c-k-ANN search
@@ -241,7 +239,7 @@ int qalsh(							// k-NN search by qalsh
 		g_recall  = g_recall / qn;
 		g_runtime = (g_runtime * 1000.0f) / qn;
 
-		printf("  %3d\t\t%.4f\t\t%.2f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
+		printf("  %3d\t\t%.4f\t\t%.3f\t\t%.2f\n", top_k, g_ratio, g_runtime, 
 			g_recall);
 		fprintf(fp, "%d\t%f\t%f\t%f\n", top_k, g_ratio, g_runtime, g_recall);
 	}
@@ -253,6 +251,7 @@ int qalsh(							// k-NN search by qalsh
 	//  release space
 	// -------------------------------------------------------------------------
 	delete lsh; lsh = NULL;
+	assert(g_memory == 0);
 
 	return 0;
 }

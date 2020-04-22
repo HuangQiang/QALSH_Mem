@@ -1,15 +1,4 @@
-#include <algorithm>
-#include <cassert>
-#include <vector>
-
-#include "def.h"
-#include "util.h"
-#include "pri_queue.h"
-#include "kd_rect.h"
-#include "kd_tree.h"
-#include "qalsh.h"
 #include "qalsh_plus.h"
-
 
 // -----------------------------------------------------------------------------
 QALSH_PLUS::QALSH_PLUS(				// constructor
@@ -26,246 +15,170 @@ QALSH_PLUS::QALSH_PLUS(				// constructor
 	// -------------------------------------------------------------------------
 	//  init parameters
 	// -------------------------------------------------------------------------
-	n_pts_      = n;
-	dim_        = d;
-	leaf_       = leaf;
-	L_          = L;
-	M_          = M;
-	p_          = p;
-	zeta_       = zeta;
-	appr_ratio_ = ratio;
+	n_pts_ = n;
+	dim_   = d;
+	L_     = L;
+	M_     = M;
+	p_     = p;
+	data_  = data;
 
-	// -------------------------------------------------------------------------
-	//  bulkloading
-	// -------------------------------------------------------------------------
-	bulkload(data);
-}
-
-// -----------------------------------------------------------------------------
-int QALSH_PLUS::bulkload(			// bulkloading
-	const float **data)					// data objects
-{
 	// -------------------------------------------------------------------------
 	//  kd-tree partition
 	// -------------------------------------------------------------------------
-	int *new_order_id = new int[n_pts_];
+	g_memory += SIZEINT * n;
+	new_order_id_ = new int[n];
 	std::vector<int> block_size;
-	kd_tree_partition(data, block_size, new_order_id);
+	kd_tree_partition(leaf, block_size, new_order_id_);
+
+	num_blocks_ = (int) block_size.size();
 
 	// -------------------------------------------------------------------------
-	//  init <new_order_data_>　for bulkloading data objects 
+	//  get sample_id and build qalsh for each block
 	// -------------------------------------------------------------------------
-	new_order_data_ = new float*[n_pts_];
-	for (int i = 0; i < n_pts_; ++i) {
-		new_order_data_[i] = new float[dim_];
-
-		int id = new_order_id[i];
-		for (int j = 0; j < dim_; ++j) {
-			new_order_data_[i][j] = data[id][j];
-		}
-	}
-	
-	// -------------------------------------------------------------------------
-	//  bulkloading data objects for each block 
-	// -------------------------------------------------------------------------
-	int sample_size = L_ * M_;
-	num_blocks_   = (int) block_size.size();
-	sample_n_pts_ = num_blocks_ * sample_size;
-
-	int *sample_id      = new int[sample_n_pts_]; 
-	sample_id_to_block_ = new int[sample_n_pts_];
-	sample_data_        = new float*[sample_n_pts_];
-	for (int i = 0; i < sample_n_pts_; ++i) {
-		sample_data_[i] = new float[dim_];
-	}
+	int sample_size  = L_ * M_;
+	int sample_n_pts = num_blocks_ * sample_size;
+	int *sample_id   = new int[sample_n_pts];
 
 	int start = 0;
 	int count = 0;
 	for (int i = 0; i < num_blocks_; ++i) {
 		// ---------------------------------------------------------------------
-		//  calculate shift data
-		// ---------------------------------------------------------------------
-		int n = block_size[i]; 
-		assert(n > sample_size);
-
-		std::vector<std::vector<float> > shift_data(n, std::vector<float>(dim_, 0.0f));
-		calc_shift_data(n, dim_, (const float **)new_order_data_+start, shift_data);
-		
-		// ---------------------------------------------------------------------
 		//  select sample data from each blcok 
 		// ---------------------------------------------------------------------
-		drusilla_select(n, dim_, shift_data, (const int *) new_order_id + start, 
-			sample_id + count);
+		int block_n = block_size[i]; assert(block_n > sample_size);
+		drusilla_select(block_n, new_order_id_ + start, sample_id + count);
 
-		for (int j = 0; j < sample_size; ++j) {
-			sample_id_to_block_[count] = i;
+		// ---------------------------------------------------------------------
+		//  build qalsh for each blcok 
+		// ---------------------------------------------------------------------
+		Block *block = new Block();
+		block->n_pts_ = block_n;
+		block->index_ = new_order_id_ + start;
+		block->lsh_   = new QALSH(block_n, d, p, zeta, ratio);
 
-			int id = sample_id[count];
-			for (int z = 0; z < dim_; ++z) {
-				sample_data_[count][z] = data[id][z];
+		int m = block->lsh_->m_;
+		for (int j = 0; j < block_n; ++j) {
+			int id = block->index_[j];
+			for (int u = 0; u < m; ++u) {
+				float val = block->lsh_->calc_hash_value(u, data[id]);
+				block->lsh_->tables_[u][j].id_  = j;
+				block->lsh_->tables_[u][j].key_ = val;
 			}
-			++count;
 		}
-
-		// ---------------------------------------------------------------------
-		//  build index for each blcok 
-		// ---------------------------------------------------------------------
-		Blocks *block = new Blocks();
-		block->n_pts_ = n;
-		block->index_.resize(n);
-		for (int j = 0; j < n; ++j) {
-			block->index_[j] = new_order_id[start + j];
+		for (int j = 0; j < m; ++j) {
+			qsort(block->lsh_->tables_[j], block_n, sizeof(Result), ResultComp);
 		}
-
-		block->lsh_ = new QALSH(n, dim_, p_, zeta_, appr_ratio_, 
-			(const float **) new_order_data_ + start);
 		blocks_.push_back(block);
 
 		// ---------------------------------------------------------------------
 		//  update parameters
 		// ---------------------------------------------------------------------
-		start += n;
+		start += block_n;
+		count += sample_size;
 	}
-	assert(count == sample_n_pts_);
+	assert(start == n);
+	assert(count == sample_n_pts);
 
 	// -------------------------------------------------------------------------
-	//  build index for sample data
+	//  build qalsh for sample data
 	// -------------------------------------------------------------------------
-	lsh_ = new QALSH(sample_n_pts_, dim_, p_, zeta_, appr_ratio_,
-		(const float **) sample_data_);
+	g_memory += SIZEFLOAT * sample_n_pts * d;
+	sample_data_ = new float*[sample_n_pts];
+	for (int i = 0; i < sample_n_pts; ++i) {
+		sample_data_[i] = new float[d];
+
+		const float *one_data = data[sample_id[i]];
+		for (int j = 0; j < d; ++j) {
+			sample_data_[i][j] = one_data[j];
+		}
+	}
+	lsh_ = new QALSH(sample_n_pts, d, p, zeta, ratio, (const float**) sample_data_);
 
 	// -------------------------------------------------------------------------
 	//  release space
 	// -------------------------------------------------------------------------
-	delete[] new_order_id; new_order_id = NULL;
 	delete[] sample_id; sample_id = NULL;
-
-	return 0;
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_PLUS::kd_tree_partition(	// kd-tree partition
-	const float **data,					// data objects
-	std::vector<int> &block_size,		// block size
-	int *new_order_id)					// new order id
+void QALSH_PLUS::kd_tree_partition(	// kd-tree partition
+	int leaf,							// leaf size of kd-tree
+	std::vector<int> &block_size,		// block size (return)
+	int *new_order_id)					// new order id (return)
 {
-	KD_Tree *tree = new KD_Tree(n_pts_, dim_, leaf_, data);
+	KD_Tree *tree = new KD_Tree(n_pts_, dim_, leaf, data_);
 	tree->traversal(block_size, new_order_id);
 
 	delete tree; tree = NULL;
-	return 0;
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_PLUS::calc_shift_data(	// calculate shift data objects
-	int   n,							// number of data points
-	int   d,							// dimensionality
-	const float **data,					// data objects
-	std::vector<std::vector<float> > &shift_data) // shift data objects (return)
-{
-	// -------------------------------------------------------------------------
-	//  calculate the centroid of data objects
-	// -------------------------------------------------------------------------
-	std::vector<float> centroid(d, 0.0f);
-	for (int i = 0; i < n; ++i) {
-		for (int j = 0; j < d; ++j) {
-			centroid[j] += data[i][j];
-		}
-	}
-	for (int i = 0; i < d; ++i) {
-		centroid[i] /= (float) n;
-	}
-
-	// -------------------------------------------------------------------------
-	//  make a copy of data objects which move to the centroid of data objects
-	// -------------------------------------------------------------------------
-	for (int i = 0; i < n; ++i) {
-		for (int j = 0; j < d; ++j) {
-			shift_data[i][j] = data[i][j] - centroid[j];
-		}
-	}
-	
-	return 0;
-}
-
-// -----------------------------------------------------------------------------
-int QALSH_PLUS::drusilla_select(	// drusilla select
+void QALSH_PLUS::drusilla_select(	// drusilla select
 	int   n,							// number of objects
-	int   d,							// data dimension
-	const std::vector<std::vector<float> > &shift_data, // shift data objects
 	const int *new_order_id,			// new order data id
 	int   *sample_id)					// sample data id (return)
 {
 	// -------------------------------------------------------------------------
-	//  calc the norm of data objects and find the data object with max norm
+	//  calc shift data
 	// -------------------------------------------------------------------------
 	int   max_id   = -1;
-	float max_norm = -1.0f;
-	std::vector<float> norm(n, 0.0f);
+	float max_norm = MINREAL;
+	float *norm = new float[n];
+	float **shift_data = new float*[n];
+	for (int i = 0; i < n; ++i) shift_data[i] = new float[dim_];
+	
+	calc_shift_data(n, new_order_id, max_id, max_norm, norm, shift_data);
 
-	for (int i = 0; i < n; ++i) {
-		for (int j = 0; j < d; ++j) {
-			norm[i] += SQR(shift_data[i][j]);
-		}
-		norm[i] = sqrt(norm[i]);
-
-		if (norm[i] > max_norm) {
-			max_norm = norm[i];
-			max_id   = i;
-		}
-	}
-
-	std::vector<bool>  close_angle(n);
-	std::vector<float> projection(d);
-	Result *score_pair = new Result[n];
+	// -------------------------------------------------------------------------
+	//  drusilla select
+	// -------------------------------------------------------------------------
+	float  *proj  = new float[dim_];
+	Result *score = new Result[n];
+	bool   *close_angle = new bool[n];
 
 	for (int i = 0; i < L_; ++i) {
 		// ---------------------------------------------------------------------
-		//  determine the projection vector with max norm and normalize it
+		//  select the projection vector with largest norm and normalize it
 		// ---------------------------------------------------------------------
-		for (int j = 0; j < d; ++j) {
-			projection[j] = shift_data[max_id][j] / norm[max_id];
+		for (int j = 0; j < dim_; ++j) {
+			proj[j] = shift_data[max_id][j] / norm[max_id];
 		}
 
 		// ---------------------------------------------------------------------
 		//  calculate offsets and distortions
 		// ---------------------------------------------------------------------
 		for (int j = 0; j < n; ++j) {
-			score_pair[j].id_ = j;
+			score[j].id_ = j;
 			close_angle[j] = false;
 
 			if (norm[j] > 0.0f) {
-				float offset = 0.0f;
-				for (int k = 0; k < d; ++k) {
-					offset += shift_data[j][k] * projection[k];
-				}
+				float offset = calc_inner_product(dim_, shift_data[j], proj);
 
 				float distortion = 0.0f;
-				for (int k = 0; k < d; ++k) {
-					distortion += SQR(shift_data[j][k] - offset * projection[k]);
+				for (int u = 0; u < dim_; ++u) {
+					distortion += SQR(shift_data[j][u] - offset * proj[u]);
 				}
 
-				score_pair[j].key_ = offset * offset - distortion;
-				if (atan(distortion / fabs(offset)) < ANGLE) {
+				score[j].key_ = offset * offset - distortion;
+				if (atan(sqrt(distortion) / fabs(offset)) < ANGLE) {
 					close_angle[j] = true;
 				}
 			}
 			else if (fabs(norm[j]) < FLOATZERO) {
-				score_pair[j].key_ = MINREAL + 1.0f;
+				score[j].key_ = MINREAL + 1.0f;
 			}
 			else {
-				score_pair[j].key_ = MINREAL;
+				score[j].key_ = MINREAL;
 			}
 		}
 
 		// ---------------------------------------------------------------------
 		//  collect the objects that are well-represented by this projection
 		// ---------------------------------------------------------------------
-		qsort(score_pair, n, sizeof(Result), ResultCompDesc);
-		int base = i * M_;
+		qsort(score, n, sizeof(Result), ResultCompDesc);
 		for (int j = 0; j < M_; ++j) {
-			int id = score_pair[j].id_;
-			sample_id[base + j] = new_order_id[id];
+			int id = score[j].id_;
+			sample_id[i * M_ + j] = new_order_id[id];
 			norm[id] = -1.0f;
 		}
 
@@ -273,61 +186,102 @@ int QALSH_PLUS::drusilla_select(	// drusilla select
 		//  find the next largest norm and the corresponding object
 		// ---------------------------------------------------------------------
 		max_id   = -1;
-		max_norm = -1.0f;
+		max_norm = MINREAL;
 		for (int j = 0; j < n; ++j) {
-			if (norm[j] > 0.0f && close_angle[j]) norm[j] = 0.0f;
-			
-			if (norm[j] > max_norm) {
-				max_norm = norm[j];
-				max_id   = j;
-			}
+			if (norm[j] > 0.0f && close_angle[j]) { norm[j] = 0.0f; }
+			if (norm[j] > max_norm) { max_norm = norm[j]; max_id = j; }
 		}
 	}
+	// -------------------------------------------------------------------------
+	//  release space
+	// -------------------------------------------------------------------------
+	delete[] norm;        norm        = NULL;
+	delete[] close_angle; close_angle = NULL;
+	delete[] proj;        proj        = NULL;
+	delete[] score;       score       = NULL;
+
+	for (int i = 0; i < n; ++i) {
+		delete[] shift_data[i]; shift_data[i] = NULL;
+	}
+	delete[] shift_data; shift_data = NULL;
+}
+
+// -----------------------------------------------------------------------------
+void QALSH_PLUS::calc_shift_data(	// calculate shift data objects
+	int   n,							// number of data objects
+	const int *new_order_id,			// new order data id
+	int   &max_id,						// data id with max l2-norm (return)
+	float &max_norm,					// max l2-norm (return)
+	float *norm,						// l2-norm of shift data (return)
+	float **shift_data) 				// shift data (return)
+{
+	// -------------------------------------------------------------------------
+	//  calculate the centroid of data objects
+	// -------------------------------------------------------------------------
+	float *centroid = new float[dim_];
+	memset(centroid, 0.0f, dim_ * SIZEFLOAT);
+	for (int i = 0; i < n; ++i) {
+		int id = new_order_id[i];
+		for (int j = 0; j < dim_; ++j) {
+			centroid[j] += data_[id][j];
+		}
+	}
+	for (int i = 0; i < dim_; ++i) centroid[i] /= n;
 
 	// -------------------------------------------------------------------------
-	//  initialize parameters for k-FP search
+	//  calc shift data and their l2-norm and find max l2-norm and its id
 	// -------------------------------------------------------------------------
-	delete[] score_pair; score_pair = NULL;
+	max_id   = -1;
+	max_norm = MINREAL;
 
-	return 0;
+	for (int i = 0; i < n; ++i) {
+		int id = new_order_id[i];
+
+		norm[i] = 0.0f;
+		for (int j = 0; j < dim_; ++j) {
+			float tmp = data_[id][j] - centroid[j];
+			shift_data[i][j] = tmp;
+			norm[i] += SQR(tmp);
+		}
+		norm[i] = sqrt(norm[i]);
+
+		if (norm[i] > max_norm) { max_norm = norm[i]; max_id = i; }
+	}
+	delete[] centroid; centroid = NULL;
 }
 
 // -----------------------------------------------------------------------------
 QALSH_PLUS::~QALSH_PLUS()			// destructor
 {
-	for (int i = 0; i < n_pts_; ++i) {
-		delete[] new_order_data_[i]; new_order_data_[i] = NULL;
+	delete lsh_; lsh_ = NULL;
+
+	int sample_n_pts = M_ * L_ * num_blocks_;
+	for (int i = 0; i < sample_n_pts; ++i) {
+		delete[] sample_data_[i]; sample_data_[i] = NULL;
 	}
-	delete[] new_order_data_; new_order_data_ = NULL;
+	delete[] sample_data_; sample_data_ = NULL;
+	g_memory -= SIZEFLOAT * sample_n_pts * dim_;
+
+	delete[] new_order_id_; new_order_id_ = NULL;
+	g_memory -= SIZEINT * n_pts_;
 
 	for (int i = 0; i < num_blocks_; ++i) {
 		delete blocks_[i]; blocks_[i] = NULL;
 	}
 	blocks_.clear(); blocks_.shrink_to_fit();
-
-	delete lsh_; lsh_ = NULL;
-	delete[] sample_id_to_block_; sample_id_to_block_ = NULL;
-
-	for (int i = 0; i < sample_n_pts_; ++i) {
-		delete[] sample_data_[i]; sample_data_[i] = NULL;
-	}
-	delete[] sample_data_; sample_data_ = NULL;
 }
 
 // -----------------------------------------------------------------------------
 void QALSH_PLUS::display()			// display parameters
 {
 	printf("Parameters of QALSH+:\n");
-	printf("    n          = %d\n",   n_pts_);
-	printf("    d          = %d\n",   dim_);
-	printf("    leaf       = %d\n",   leaf_);
-	printf("    L          = %d\n",   L_);
-	printf("    M          = %d\n",   M_);
+	printf("    n          = %d\n", n_pts_);
+	printf("    d          = %d\n", dim_);
+	printf("    L          = %d\n", L_);
+	printf("    M          = %d\n", M_);
 	printf("    p          = %.1f\n", p_);
-	printf("    zeta       = %.1f\n", zeta_);
-	printf("    c          = %.1f\n", appr_ratio_);
-	printf("    num_blocks = %d\n",   num_blocks_);
-	printf("    sample_n   = %d\n\n", sample_n_pts_);
+	printf("    num_blocks = %d\n", num_blocks_);
+	printf("\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -337,39 +291,46 @@ int QALSH_PLUS::knn(				// c-k-ANN search
 	const float *query,					// input query objects
 	MinK_List *list)					// k-NN results
 {
-	// -------------------------------------------------------------------------
-	//  use sample data to determine the order of blocks for k-NN search
-	// -------------------------------------------------------------------------
-	MinK_List *sample_list = new MinK_List(MAXK);
-	lsh_->knn(MAXK, query, sample_list);
+	assert(nb > 0 && nb <= num_blocks_);
 
+	// -------------------------------------------------------------------------
+	//  use sample data to determine block_order for k-NN search
+	// -------------------------------------------------------------------------
 	std::vector<int> block_order;
-	get_block_order(nb, sample_list, block_order);
+	MinK_List *cand_list = new MinK_List(MAXK);
+	lsh_->knn(MAXK, query, cand_list);
+	
+	get_block_order(nb, cand_list, block_order);
 	
 	// -------------------------------------------------------------------------
 	//  use <nb> blocks for k-NN search
 	// -------------------------------------------------------------------------
-	int radius = MAXREAL;
-	int size = (int) block_order.size();
-	for (int i = 0; i < size; ++i) {
-		int id = block_order[i];
-		blocks_[id]->lsh_->knn(top_k, radius, query, blocks_[id]->index_, list);
+	std::vector<int> cand;
+	float radius = MAXREAL;
+	for (size_t i = 0; i < block_order.size(); ++i) {
+		int   bid = block_order[i];
+		Block *block = blocks_[bid];
 
-		radius = list->max_key();
+		// find candidates by qalsh for this block
+		cand.clear();
+		block->lsh_->knn(top_k, radius, query, cand);
+
+		// check candidates
+		for (size_t j = 0; j < cand.size(); ++j) {
+			int   id   = block->index_[cand[j]];
+			float dist = calc_lp_dist(dim_, p_, radius, data_[id], query);
+			radius = list->insert(dist, id);
+		}
 	}
-	delete sample_list; sample_list = NULL;
-	
 	return 0;
 }
 
 // -----------------------------------------------------------------------------
-int QALSH_PLUS::get_block_order(	// get block order
+void QALSH_PLUS::get_block_order(	// get block order
 	int nb,								// number of blocks for search
-	MinK_List *list,					// sample results
+	MinK_List *cand,					// candidates
 	std::vector<int> &block_order)		// block order (return)
 {
-	assert(nb <= num_blocks_);
-
 	// -------------------------------------------------------------------------
 	//  init the counter of each block
 	// -------------------------------------------------------------------------
@@ -382,22 +343,16 @@ int QALSH_PLUS::get_block_order(	// get block order
 	// -------------------------------------------------------------------------
 	//  select the first <nb> blocks with largest counters
 	// -------------------------------------------------------------------------
-	int size = (int) list->size();
-	for (int i = 0; i < size; ++i) {
-		int block_id = sample_id_to_block_[list->ith_id(i)];
+	int sample_size  = L_ * M_;
+	for (int i = 0; i < cand->size(); ++i) {
+		int block_id = cand->ith_id(i) / sample_size;
 		pair[block_id].key_ += 1.0f;
 	}
 
 	qsort(pair, num_blocks_, sizeof(Result), ResultCompDesc);
 	for (int i = 0; i < nb; ++i) {
-		if (fabs(pair[i].key_) < FLOATZERO) break;
+		// if (fabs(pair[i].key_) < FLOATZERO) break;
 		block_order.push_back(pair[i].id_);
 	}
-
-	// -------------------------------------------------------------------------
-	//  release space
-	// -------------------------------------------------------------------------
 	delete[] pair; pair = NULL;
-
-	return 0;
 }

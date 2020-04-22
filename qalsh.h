@@ -1,7 +1,17 @@
 #ifndef __QALSH_H
 #define __QALSH_H
 
+#include <iostream>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstring>
 #include <vector>
+
+#include "def.h"
+#include "util.h"
+#include "random.h"
+#include "pri_queue.h"
 
 struct Result;
 class  MinK_List;
@@ -17,6 +27,15 @@ class  MinK_List;
 // -----------------------------------------------------------------------------
 class QALSH {
 public:
+	// -------------------------------------------------------------------------
+	QALSH(							// constructor
+		int   n,						// cardinality
+		int   d,						// dimensionality
+		float p,						// l_p distance
+		float zeta,						// a parameter of p-stable distr.
+		float ratio);					// approximation ratio
+
+	// -------------------------------------------------------------------------
 	QALSH(							// constructor
 		int   n,						// cardinality
 		int   d,						// dimensionality
@@ -29,50 +48,44 @@ public:
 	~QALSH();						// destructor
 
 	// -------------------------------------------------------------------------
+	float calc_hash_value(			// calc hash value
+		int   tid,						// hash table id
+		const float *data);				// one data/query object
+
+	// -------------------------------------------------------------------------
 	void display();					// display parameters
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN search
-		int top_k,						// top-k value
+		int   top_k,					// top-k value
 		const float *query,				// input query object
 		MinK_List *list);				// k-NN results (return)
 
 	// -------------------------------------------------------------------------
 	int knn(						// k-NN search
-		int top_k,						// top-k value
+		int   top_k,					// top-k value
 		float R,						// limited search range
 		const float *query,				// input query object
-		const std::vector<int> &object_id, // object id mapping
-		MinK_List *list);				// k-NN results (return)
+		std::vector<int> &cand);		// object id mapping
 
-protected:
 	// -------------------------------------------------------------------------
 	int    n_pts_;					// cardinality
 	int    dim_;					// dimensionality
 	float  p_;						// l_p distance
-	float  zeta_;					// parameter of p-stable distr.
-	float  appr_ratio_;				// approximation ratio
-	const  float **data_;			// data objects
-
+	float  zeta_;					// a parameter of p-stable distr.
+	float  ratio_;					// approximation ratio
 	float  w_;						// bucket width
-	float  p1_;						// positive probability
-	float  p2_;						// negative probability
-	float  alpha_;					// collision threshold percentage
-	float  beta_;					// false positive percentage
-	float  delta_;					// error probability
 	int    m_;						// number of hashtables
 	int    l_;						// collision threshold
-	float  *a_array_;				// hash functions
+
+	const  float **data_;			// data objects
+	float  **a_;					// hash functions
 	Result **tables_;				// hash tables
 
-	int    *freq_;					// frequency		
-	int    *lpos_;					// left  position of hash table
-	int    *rpos_;					// right position of hash table
-	bool   *checked_;				// whether checked
-	bool   *bucket_flag_;			// bucket flag
-	bool   *range_flag_;			// range flag
-	float  *q_val_;					// hash value of query
-	
+protected:
+	// -------------------------------------------------------------------------
+	void init();					// basic initialzation
+
 	// -------------------------------------------------------------------------
 	float calc_l0_prob(				// calc <p1> and <p2> for L_{0.5} distance
 		float x);						// x = w / (2.0 * r)
@@ -81,17 +94,7 @@ protected:
 		float x);						// x = w / (2.0 * r)
 
 	float calc_l2_prob(				// calc <p1> and <p2> for L_{2.0} distance
-		float x);						// x = w / (2.0 * r)	
-
-	// -------------------------------------------------------------------------
-	float calc_hash_value(			// calc hash value
-		int   tid,						// hash table id
-		const float *data);				// one data/query object
-
-	// -------------------------------------------------------------------------
-	int binary_search_pos(			// find position by binary search
-		int   tid,						// hash table id
-		float value);					// hash value
+		float x);						// x = w / (2.0 * r)
 };
 
 #endif // __QALSH_H

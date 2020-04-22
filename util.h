@@ -1,41 +1,46 @@
 #ifndef __UTIL_H
 #define __UTIL_H
 
-class MinK_List;
+#include <iostream>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstring>
+
+#include <unistd.h>
+#include <stdarg.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/time.h>
+
+#include "def.h"
+#include "util.h"
+#include "pri_queue.h"
+
+struct Result;
+class  MinK_List;
 
 extern timeval g_start_time;		// global parameter: start time
 extern timeval g_end_time;			// global parameter: end time
 
-extern float g_runtime;				// global parameter: running time
-extern float g_ratio;				// global parameter: overall ratio
-extern float g_recall;				// global parameter: recall
+extern uint64_t g_memory;			// global parameter: memory usage
+extern float    g_runtime;			// global parameter: running time
+extern float    g_ratio;			// global parameter: overall ratio
+extern float    g_recall;			// global parameter: recall
 
-// -----------------------------------------------------------------------------
-//  struct Result
-// -----------------------------------------------------------------------------
-struct Result {						// structure 
-	float key_;							// distance / random projection value
-	int   id_;							// object id
-};
-
-// -----------------------------------------------------------------------------
-int ResultComp(						// compare function for qsort (ascending)
-	const void *e1,						// 1st element
-	const void *e2);					// 2nd element
-
-// -----------------------------------------------------------------------------
-int ResultCompDesc(					// compare function for qsort (descending)
-	const void *e1,						// 1st element
-	const void *e2);					// 2nd element
-
-// -----------------------------------------------------------------------------
-//  uitlity functions
 // -----------------------------------------------------------------------------
 void create_dir(					// create dir if the path exists
 	char *path);						// input path
 
 // -----------------------------------------------------------------------------
-int read_data(						// read data/query set from disk
+int read_txt_data(					// read data (text) from disk
+	int   n,							// number of data/query objects
+	int   d,			 				// dimensionality
+	const char *fname,					// address of data/query set
+	float **data);						// data/query objects (return)
+
+// -----------------------------------------------------------------------------
+int read_bin_data(					// read data (binary) from disk
 	int   n,							// number of data/query objects
 	int   d,			 				// dimensionality
 	const char *fname,					// address of data/query set
@@ -81,6 +86,12 @@ float calc_lp_pow(					// calc L_p pow_p distance
 	int   dim,							// dimension
 	float p,							// the p value of Lp norm, p in (0,2]
 	float threshold,					// threshold
+	const float *p1,					// 1st point
+	const float *p2);					// 2nd point
+
+// -----------------------------------------------------------------------------
+float calc_inner_product(			// calc inner product
+	int   dim,							// dimension
 	const float *p1,					// 1st point
 	const float *p2);					// 2nd point
 

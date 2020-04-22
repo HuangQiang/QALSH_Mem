@@ -1,10 +1,10 @@
+#include <iostream>
 #include <algorithm>
 #include <cstring>
 
 #include "def.h"
 #include "util.h"
 #include "ann.h"
-
 
 // -----------------------------------------------------------------------------
 void usage() 						// display the usage of QALSH+
@@ -196,22 +196,16 @@ int main(int nargs, char **args)
 	// -------------------------------------------------------------------------
 	data = new float*[n];
 	for (int i = 0; i < n; ++i) data[i] = new float[d];
-	if (read_data(n, d, data_set, data) == 1) {
-		return 1;
-	}
+	if (read_bin_data(n, d, data_set, data) == 1) return 1;
 
 	query = new float*[qn];
 	for (int i = 0; i < qn; ++i) query[i] = new float[d];
-	if (read_data(qn, d, query_set, query) == 1) {
-		return 1;
-	}
+	if (read_bin_data(qn, d, query_set, query) == 1) return 1;
 
 	if (alg > 0) {
 		R = new Result*[qn];
 		for (int i = 0; i < qn; ++i) R[i] = new Result[MAXK];
-		if (read_ground_truth(qn, truth_set, R) == 1) {
-			return 1;
-		}
+		if (read_ground_truth(qn, truth_set, R) == 1) return 1;
 	}
 	
 	// -------------------------------------------------------------------------
@@ -243,20 +237,14 @@ int main(int nargs, char **args)
 	// -------------------------------------------------------------------------
 	//  release space
 	// -------------------------------------------------------------------------
-	for (int i = 0; i < n; ++i) {
-		delete[] data[i]; data[i] = NULL;
-	}
+	for (int i = 0; i < n; ++i) { delete[] data[i]; data[i] = NULL; }
 	delete[] data; data  = NULL;
 
-	for (int i = 0; i < qn; ++i) {
-		delete[] query[i]; query[i] = NULL;
-	}
+	for (int i = 0; i < qn; ++i) { delete[] query[i]; query[i] = NULL; }
 	delete[] query; query = NULL;
 
 	if (alg > 0) {
-		for (int i = 0; i < qn; ++i) {
-			delete[] R[i]; R[i] = NULL;
-		}
+		for (int i = 0; i < qn; ++i) { delete[] R[i]; R[i] = NULL; }
 		delete[] R; R = NULL;
 	}
 

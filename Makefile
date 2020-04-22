@@ -1,4 +1,4 @@
-SRCS=random.cc util.cc pri_queue.cc kd_rect.cc kd_node.cc kd_tree.cc \
+SRCS=random.cc pri_queue.cc util.cc kd_node.cc kd_tree.cc \
 	qalsh.cc qalsh_plus.cc ann.cc main.cc
 OBJS=${SRCS:.cc=.o}
 
@@ -12,11 +12,9 @@ all: ${OBJS}
 
 random.o: random.h
 
-util.o: util.h
-
 pri_queue.o: pri_queue.h
 
-kd_rect.o: kd_rect.h
+util.o: util.h
 
 kd_node.o: kd_node.h
 

@@ -1,11 +1,4 @@
-#include <algorithm>
-#include <vector>
-
-#include "def.h"
-#include "util.h"
-#include "pri_queue.h"
 #include "kd_node.h"
-
 
 // -----------------------------------------------------------------------------
 //	KD_Leaf: leaf node of kd-tree
@@ -78,12 +71,8 @@ KD_Split::KD_Split(					// constructor
 // -----------------------------------------------------------------------------
 KD_Split::~KD_Split()				// destructor
 {
-	if (child_[0] != NULL) {
-		delete child_[0]; child_[0] = NULL;
-	}
-	if (child_[1] != NULL) {
-		delete child_[1]; child_[1] = NULL;
-	}
+	if (child_[0] != NULL) { delete child_[0]; child_[0] = NULL; }
+	if (child_[1] != NULL) { delete child_[1]; child_[1] = NULL; }
 }
 
 // -----------------------------------------------------------------------------
@@ -103,7 +92,7 @@ void KD_Split::search(				// tree search
 		float box_diff = cd_bnds_[0] - query[cut_dim_];
 		if (box_diff < 0.0f) box_diff = 0.0f;
 
-		box_dist += cut_diff * cut_diff - box_diff * box_diff;
+		box_dist += (cut_diff * cut_diff - box_diff * box_diff);
 
 		// ---------------------------------------------------------------------
 		//  visit right child
@@ -121,7 +110,7 @@ void KD_Split::search(				// tree search
 		float box_diff = query[cut_dim_] - cd_bnds_[1];
 		if (box_diff < 0) box_diff = 0;
 		
-		box_dist += cut_diff * cut_diff - box_diff * box_diff;
+		box_dist += (cut_diff * cut_diff - box_diff * box_diff);
 
 		// ---------------------------------------------------------------------
 		//  visit left child

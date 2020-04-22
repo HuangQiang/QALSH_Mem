@@ -1,13 +1,25 @@
-#include <algorithm>
-#include <cstring>
-#include <vector>
-
-#include "def.h"
-#include "util.h"
-#include "pri_queue.h"
-#include "random.h"
 #include "qalsh.h"
 
+// -----------------------------------------------------------------------------
+QALSH::QALSH(						// constructor
+	int   n,							// cardinality
+	int   d,							// dimensionality
+	float p,							// l_p distance
+	float zeta,							// a parameter of p-stable distr.
+	float ratio)						// approximation ratio
+{
+	// -------------------------------------------------------------------------
+	//  init parameters
+	// -------------------------------------------------------------------------
+	n_pts_ = n;
+	dim_   = d;
+	p_     = p;
+	zeta_  = zeta;
+	ratio_ = ratio;
+	data_  = NULL;
+
+	init();
+}
 
 // -----------------------------------------------------------------------------
 QALSH::QALSH(						// constructor
@@ -19,109 +31,102 @@ QALSH::QALSH(						// constructor
 	const float **data)					// data objects
 {
 	// -------------------------------------------------------------------------
-	//  init basic parameters
+	//  init parameters
 	// -------------------------------------------------------------------------
-	n_pts_      = n;
-	dim_        = d;
-	p_          = p;
-	zeta_       = zeta;
-	appr_ratio_ = ratio;
-	data_       = data;
-	delta_      = 1.0f / E;
-	beta_       = (float) CANDIDATES / (float) n;
+	n_pts_ = n;
+	dim_   = d;
+	p_     = p;
+	zeta_  = zeta;
+	ratio_ = ratio;
+	data_  = data;
+
+	init();
 
 	// -------------------------------------------------------------------------
-	//  init <w_> <p1_> and <p2_> (auto tuning-w)
+	//  bulkloading
+	// -------------------------------------------------------------------------
+	for (int i = 0; i < m_; ++i) {
+		for (int j = 0; j < n_pts_; ++j) {
+			tables_[i][j].id_  = j;
+			tables_[i][j].key_ = calc_hash_value(i, data[j]);
+		}
+		qsort(tables_[i], n_pts_, sizeof(Result), ResultComp);
+	}
+}
+
+// -----------------------------------------------------------------------------
+void QALSH::init()					// basic initialization
+{
+	// -------------------------------------------------------------------------
+	//  init <w_> <m_> and <l_> (auto tuning-w)
 	//  
 	//  w0 ----- best w for L_{0.5} norm to minimize m (auto tuning-w)
 	//  w1 ----- best w for L_{1.0} norm to minimize m (auto tuning-w)
 	//  w2 ----- best w for L_{2.0} norm to minimize m (auto tuning-w)
 	//  other w: use linear combination for interpolation
 	// -------------------------------------------------------------------------
-	float w0 = (ratio - 1.0f) / log(sqrt(ratio));
-	float w1 = 2.0f * sqrt(ratio);
-	float w2 = sqrt((8.0f * SQR(ratio) * log(ratio)) / (SQR(ratio) - 1.0f));
+	float delta = 1.0f / E;
+	float beta  = (float) CANDIDATES / (float) n_pts_;
+
+	float w0 = (ratio_ - 1.0f) / log(sqrt(ratio_));
+	float w1 = 2.0f * sqrt(ratio_);
+	float w2 = sqrt((8.0f * SQR(ratio_) * log(ratio_)) / (SQR(ratio_) - 1.0f));
+	float p1 = -1.0f, p2 = -1.0f;
 
 	if (fabs(p_ - 0.5f) < FLOATZERO) {
-		w_  = w0;
-		p1_ = calc_l0_prob(w_ / 2.0f);
-		p2_ = calc_l0_prob(w_ / (2.0f * ratio));
+		w_ = w0;
+		p1 = calc_l0_prob(w_ / 2.0f);
+		p2 = calc_l0_prob(w_ / (2.0f * ratio_));
 	}
 	else if (fabs(p_ - 1.0f) < FLOATZERO) {
-		w_  = w1;
-		p1_ = calc_l1_prob(w_ / 2.0f);
-		p2_ = calc_l1_prob(w_ / (2.0f * ratio));
+		w_ = w1;
+		p1 = calc_l1_prob(w_ / 2.0f);
+		p2 = calc_l1_prob(w_ / (2.0f * ratio_));
 	}
 	else if (fabs(p_ - 2.0f) < FLOATZERO) {
-		w_  = w2;
-		p1_ = calc_l2_prob(w_ / 2.0f);
-		p2_ = calc_l2_prob(w_ / (2.0f * ratio));
+		w_ = w2;
+		p1 = calc_l2_prob(w_ / 2.0f);
+		p2 = calc_l2_prob(w_ / (2.0f * ratio_));
 	}
 	else {
-		if (fabs(p_ - 0.8f) < FLOATZERO) {
-			w_ = 2.503f;
-		}
-		else if (fabs(p_ - 1.2f) < FLOATZERO) {
-			w_ = 3.151f;
-		}
-		else if (fabs(p_ - 1.5f) < FLOATZERO) {
-			w_ = 3.465f;
-		}
-		else {
-			w_ = (w2 - w1) * p_ + (2.0f * w1 - w2);
-		}
-		new_stable_prob(p_, zeta_, ratio, 1.0f, w_, 1000000, p1_, p2_);
+		if (fabs(p_-0.8f) < FLOATZERO) w_ = 2.503f;
+		else if (fabs(p_-1.2f) < FLOATZERO) w_ = 3.151f;
+		else if (fabs(p_-1.5f) < FLOATZERO) w_ = 3.465f;
+		else w_ = (w2 - w1) * p_ + (2.0f * w1 - w2);
+
+		new_stable_prob(p_, zeta_, ratio_, 1.0f, w_, 1000000, p1, p2);
 	}
 
-	float para1 = sqrt(log(2.0f / beta_));
-	float para2 = sqrt(log(1.0f / delta_));
-	float para3 = 2.0f * (p1_ - p2_) * (p1_ - p2_);
+	float para1 = sqrt(log(2.0f / beta));
+	float para2 = sqrt(log(1.0f / delta));
+	float para3 = 2.0f * (p1 - p2) * (p1 - p2);
 	float eta   = para1 / para2;
+	float alpha = (eta * p1 + p2) / (1.0f + eta);
 
-	alpha_ = (eta * p1_ + p2_) / (1.0f + eta);
-	m_     = (int) ceil((para1 + para2) * (para1 + para2) / para3);
-	l_     = (int) ceil(alpha_ * m_);
-
-	// -------------------------------------------------------------------------
-	//  generate hash functions
-	// -------------------------------------------------------------------------
-	int size = m_ * dim_;
-	a_array_ = new float[size];
-	for (int i = 0; i < size; ++i) {
-		if (fabs(p_ - 0.5f) < FLOATZERO) {
-			a_array_[i] = levy(1.0f, 0.0f);
-		}
-		else if (fabs(p_ - 1.0f) < FLOATZERO) {
-			a_array_[i] = cauchy(1.0f, 0.0f);
-		}
-		else if (fabs(p_ - 2.0f) < FLOATZERO) {
-			a_array_[i] = gaussian(0.0f, 1.0f);
-		}
-		else {
-			a_array_[i] = p_stable(p_, zeta_, 1.0f, 0.0f);
-		}
-	}
+	m_ = (int) ceil((para1 + para2) * (para1 + para2) / para3);
+	l_ = (int) ceil(alpha * m_);
 
 	// -------------------------------------------------------------------------
-	//  bulkloading
+	//  generate hash functions <a_>
 	// -------------------------------------------------------------------------
-	freq_        = new int[n_pts_];
-	lpos_        = new int[m_];
-	rpos_        = new int[m_];
-	checked_     = new bool[n_pts_];
-	bucket_flag_ = new bool[m_];
-	range_flag_  = new bool[m_];
-	q_val_       = new float[m_];
-	tables_      = new Result*[m_];
-
+	g_memory += SIZEFLOAT * m_ * dim_;
+	a_ = new float*[m_];
 	for (int i = 0; i < m_; ++i) {
-		tables_[i] = new Result[n_pts_];
-		for (int j = 0; j < n_pts_; ++j) {
-			tables_[i][j].id_  = j;
-			tables_[i][j].key_ = calc_hash_value(i, data_[j]);
+		a_[i] = new float[dim_];
+		for (int j = 0; j < dim_; ++j) {
+			if (fabs(p_-0.5f) < FLOATZERO) a_[i][j] = levy(1.0f, 0.0f);
+			else if (fabs(p_-1.0f) < FLOATZERO) a_[i][j]= cauchy(1.0f, 0.0f);
+			else if (fabs(p_-2.0f) < FLOATZERO) a_[i][j] = gaussian(0.0f, 1.0f);
+			else a_[i][j] = p_stable(p_, zeta_, 1.0f, 0.0f);
 		}
-		qsort(tables_[i], n_pts_, sizeof(Result), ResultComp);
 	}
+
+	// -------------------------------------------------------------------------
+	//  allocate space for hash tables <tables_>
+	// -------------------------------------------------------------------------
+	g_memory += sizeof(Result) * m_ * n_pts_;
+	tables_ = new Result*[m_];
+	for (int i = 0; i < m_; ++i) tables_[i] = new Result[n_pts_];
 }
 
 // -----------------------------------------------------------------------------
@@ -146,34 +151,25 @@ inline float QALSH::calc_l2_prob(	// calc prob of L2 dist
 }
 
 // -----------------------------------------------------------------------------
-inline float QALSH::calc_hash_value( // calc hash value
+float QALSH::calc_hash_value( 		// calc hash value
 	int   tid,							// hash table id
 	const float *data)					// one data/query object
 {
-	float ret  = 0.0f;
-	int   base = tid * dim_;
-	for (int i = 0; i < dim_; ++i) {
-		ret += a_array_[base + i] * data[i];
-	}
-	return ret;
+	return calc_inner_product(dim_, a_[tid], data);
 }
 
 // -----------------------------------------------------------------------------
 QALSH::~QALSH()						// destructor
 {
-	delete[] a_array_;     a_array_     = NULL;
-	delete[] freq_;        freq_        = NULL;
-	delete[] lpos_;        lpos_        = NULL;
-	delete[] rpos_;        rpos_        = NULL;
-	delete[] checked_;     checked_     = NULL;
-	delete[] bucket_flag_; bucket_flag_ = NULL;
-	delete[] range_flag_;  range_flag_  = NULL;
-	delete[] q_val_;       q_val_       = NULL;
-
 	for (int i = 0; i < m_; ++i) {
+		delete[] a_[i]; a_[i] = NULL;
 		delete[] tables_[i]; tables_[i] = NULL;
 	}
+	delete[] a_; a_ = NULL;
 	delete[] tables_; tables_ = NULL;
+
+	g_memory -= SIZEFLOAT * m_ * dim_;
+	g_memory -= sizeof(Result) * m_ * n_pts_;
 }
 
 // -----------------------------------------------------------------------------
@@ -184,15 +180,11 @@ void QALSH::display()				// display parameters
 	printf("    d     = %d\n",   dim_);
 	printf("    p     = %.1f\n", p_);
 	printf("    zeta  = %.1f\n", zeta_);
-	printf("    ratio = %.1f\n", appr_ratio_);
+	printf("    ratio = %.1f\n", ratio_);
 	printf("    w     = %f\n",   w_);
-	printf("    p1    = %f\n",   p1_);
-	printf("    p2    = %f\n",   p2_);
-	printf("    alpha = %f\n",   alpha_);
-	printf("    beta  = %f\n",   beta_);
-	printf("    delta = %f\n",   delta_);
 	printf("    m     = %d\n",   m_);
-	printf("    l     = %d\n\n", l_);
+	printf("    l     = %d\n",   l_);
+	printf("\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -201,130 +193,141 @@ int QALSH::knn(						// k-nn search
 	const float *query,					// input query object
 	MinK_List *list)					// k-NN results (return)
 {
-	int    candidates = CANDIDATES + top_k - 1; // candidate size
-	float  kdist      = MAXREAL;
-	Result *table     = NULL;
+	int   *freq    = new int[n_pts_];
+	int   *lpos    = new int[m_];
+	int   *rpos    = new int[m_];
+	bool  *checked = new bool[n_pts_];
+	bool  *flag    = new bool[m_];
+	float *q_val   = new float[m_];
 
 	// -------------------------------------------------------------------------
 	//  init parameters
 	// -------------------------------------------------------------------------
-	memset(freq_, 0, n_pts_ * SIZEFLOAT);
-	memset(checked_, false, n_pts_ * SIZEBOOL);
-	memset(bucket_flag_, true, m_ * SIZEBOOL);
+	memset(freq,    0,     n_pts_ * SIZEINT);
+	memset(checked, false, n_pts_ * SIZEBOOL);
 
+	Result tmp;
+	Result *table = NULL;
 	for (int i = 0; i < m_; ++i) {
-		q_val_[i] = calc_hash_value(i, query);
-		int pos = binary_search_pos(i, q_val_[i]);
-		if (pos == 0) {
-			lpos_[i] = -1;  rpos_[i] = pos;
-		} 
-		else {
-			lpos_[i] = pos; rpos_[i] = pos + 1;
-		}
+		tmp.key_ = calc_hash_value(i, query);
+		q_val[i] = tmp.key_;
+
+		table = tables_[i];
+		int pos = std::lower_bound(table, table+n_pts_, tmp, cmp) - table;
+		if (pos == 0) { lpos[i] = -1;  rpos[i] = pos; } 
+		else { lpos[i] = pos; rpos[i] = pos + 1; }
 	}
 
 	// -------------------------------------------------------------------------
 	//  c-k-ANN search
 	// -------------------------------------------------------------------------
-	int   dist_cnt     = 0;			// number of candidates computation
-	float radius       = 1.0f;		// search radius
-	float bucket_width = radius * w_ / 2.0f; // bucket width
+	int candidates = CANDIDATES + top_k - 1; // candidate size
+	int cand_cnt   = 0;				// candidate counter
+	
+	float kdist  = MAXREAL;
+	float radius = 1.0f;			// search radius
+	float width  = radius * w_ / 2.0f; // bucket width
 
 	while (true) {
 		// ---------------------------------------------------------------------
 		//  step 1: initialize the stop condition for current round
 		// ---------------------------------------------------------------------
-		int num_bucket = 0;
-		memset(bucket_flag_, true, m_ * SIZEBOOL);
+		int num_flag = 0;
+		memset(flag, true, m_ * SIZEBOOL);
 
 		// ---------------------------------------------------------------------
 		//  step 2: (R,c)-NN search
 		// ---------------------------------------------------------------------
-		int cnt = -1, pos = -1, id = -1;
-		while (num_bucket < m_) {
-			float ldist = -1.0f;	// left  proj dist to query
-			float rdist = -1.0f;	// right proj dist to query
-			float q_val = -1.0f;	// hash value of 
-			float dist  = -1.0f;	// l2-sqr dist
-
+		while (num_flag < m_) {
 			for (int j = 0; j < m_; ++j) {
-				if (!bucket_flag_[j]) continue;
+				if (!flag[j]) continue;
 
 				table = tables_[j];
-				q_val = q_val_[j];
+				float q_v = q_val[j], ldist = -1.0f, rdist = -1.0f;
 				// -------------------------------------------------------------
 				//  step 2.1: scan the left part of hash table
 				// -------------------------------------------------------------
-				cnt = 0;
-				pos = lpos_[j];
+				int cnt = 0;
+				int pos = lpos[j];
 				while (cnt < SCAN_SIZE) {
 					ldist = MAXREAL;
 					if (pos >= 0) {
-						ldist = fabs(q_val - table[pos].key_);
+						ldist = fabs(q_v - table[pos].key_);
 					}
-					if (ldist > bucket_width) break;
+					else break;
+					if (ldist > width) break;
 
-					id = table[pos].id_;
-					if (++freq_[id] >= l_ && !checked_[id]) {
-						checked_[id] = true;
-						dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
+					int id = table[pos].id_;
+					if (++freq[id] >= l_ && !checked[id]) {
+						checked[id] = true;
+						float dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
 						kdist = list->insert(dist, id);
 
-						if (++dist_cnt >= candidates) break;
+						if (++cand_cnt >= candidates) break;
 					}
 					--pos; ++cnt;
 				}
-				if (dist_cnt >= candidates) break;
-				lpos_[j] = pos;
+				if (cand_cnt >= candidates) break;
+				lpos[j] = pos;
 
 				// -------------------------------------------------------------
 				//  step 2.2: scan the right part of hash table
 				// -------------------------------------------------------------
 				cnt = 0;
-				pos = rpos_[j];
+				pos = rpos[j];
 				while (cnt < SCAN_SIZE) {
 					rdist = MAXREAL;
 					if (pos < n_pts_) {
-						rdist = fabs(q_val - table[pos].key_);
+						rdist = fabs(q_v - table[pos].key_);
 					}
-					if (rdist > bucket_width) break;
+					else break;
+					if (rdist > width) break;
 
-					id = table[pos].id_;
-					if (++freq_[id] >= l_ && !checked_[id]) {
-						checked_[id] = true;
-						dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
+					int id = table[pos].id_;
+					if (++freq[id] >= l_ && !checked[id]) {
+						checked[id] = true;
+						float dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
 						kdist = list->insert(dist, id);
 
-						if (++dist_cnt >= candidates) break;
+						if (++cand_cnt >= candidates) break;
 					}
 					++pos; ++cnt;
 				}
-				if (dist_cnt >= candidates) break;
-				rpos_[j] = pos;
+				if (cand_cnt >= candidates) break;
+				rpos[j] = pos;
 
 				// -------------------------------------------------------------
-				//  step 2.3: check whether this bucket_width is finished scanned
+				//  step 2.3: check whether this width is finished scanned
 				// -------------------------------------------------------------
-				if (ldist > bucket_width && rdist > bucket_width) {
-					bucket_flag_[j] = false;
-					++num_bucket;
-					if (num_bucket >= m_) break;
+				if (ldist > width && rdist > width) {
+					flag[j] = false;
+					if (++num_flag >= m_) break;
 				}
 			}
-			if (num_bucket >= m_ || dist_cnt >= candidates) break;
+			if (num_flag >= m_ || cand_cnt >= candidates) break;
 		}
 		// ---------------------------------------------------------------------
 		//  step 3: stop conditions t1 and t2
 		// ---------------------------------------------------------------------
-		if (kdist < appr_ratio_ * radius && dist_cnt >= top_k) break;
-		if (dist_cnt >= candidates) break;
+		if (kdist < ratio_ * radius && cand_cnt >= top_k) break;
+		if (cand_cnt >= candidates) break;
 
 		// ---------------------------------------------------------------------
 		//  step 4: auto-update radius
 		// ---------------------------------------------------------------------
-		radius = appr_ratio_ * radius;
-		bucket_width = radius * w_ / 2.0f;
+		radius = ratio_ * radius;
+		width  = radius * w_ / 2.0f;
 	}
+	// -------------------------------------------------------------------------
+	//  release space
+	// -------------------------------------------------------------------------
+	delete[] freq;    freq    = NULL;
+	delete[] lpos;    lpos    = NULL;
+	delete[] rpos;    rpos    = NULL;
+	delete[] checked; checked = NULL;
+	delete[] flag;    flag    = NULL;
+	delete[] q_val;   q_val   = NULL;
+
 	return 0;
 }
 
@@ -333,179 +336,153 @@ int QALSH::knn(						// k-NN search
 	int   top_k,						// top-k value
 	float R,							// limited search range
 	const float *query,					// input query object
-	const std::vector<int> &object_id,	// object id mapping
-	MinK_List *list)					// k-NN results (return)
+	std::vector<int> &cand)				// NN candidates (return)
 {
-	int    candidates = CANDIDATES + top_k - 1; // candidate size
-	float  kdist      = MAXREAL;
-	Result *table     = NULL;
+	int   *freq        = new int[n_pts_];
+	int   *lpos        = new int[m_];
+	int   *rpos        = new int[m_];
+	bool  *checked     = new bool[n_pts_];
+	bool  *bucket_flag = new bool[m_];
+	bool  *range_flag  = new bool[m_];
+	float *q_val       = new float[m_];
 
 	// -------------------------------------------------------------------------
 	//  init parameters
 	// -------------------------------------------------------------------------
-	memset(freq_, 0, n_pts_ * SIZEFLOAT);
-	memset(checked_, false, n_pts_ * SIZEBOOL);
-	memset(bucket_flag_, true, m_ * SIZEBOOL);
-	memset(range_flag_, true, m_ * SIZEBOOL);
+	memset(freq,       0,     n_pts_ * SIZEINT);
+	memset(checked,    false, n_pts_ * SIZEBOOL);
+	memset(range_flag, true,  m_ * SIZEBOOL);
 
+	Result tmp;
+	Result *table = NULL;
 	for (int i = 0; i < m_; ++i) {
-		q_val_[i] = calc_hash_value(i, query);
-		int pos = binary_search_pos(i, q_val_[i]);
-		if (pos == 0) {
-			lpos_[i] = -1;  rpos_[i] = pos;
-		} else {
-			lpos_[i] = pos; rpos_[i] = pos + 1;
-		}
+		tmp.key_ = calc_hash_value(i, query);
+		q_val[i] = tmp.key_;
+
+		table = tables_[i];
+		int pos = std::lower_bound(table, table+n_pts_, tmp, cmp) - table;
+		if (pos <= 0) { lpos[i] = -1; rpos[i] = pos; }
+		else { lpos[i] = pos - 1; rpos[i] = pos; }
 	}
 
 	// -------------------------------------------------------------------------
 	//  k-nn search via dynamic collision counting
 	// -------------------------------------------------------------------------
-	int   dist_cnt     = 0;			// number of candidates computation
-	int   num_range    = 0;			// number of search range flag
+	int   candidates = CANDIDATES + top_k - 1; // candidate size
+	int   cand_cnt   = 0;			// number of candidates computation	
+	int   num_range  = 0;			// number of search range flag
 
-	float radius       = 1.0f;		// search radius
-	float bucket_width = radius * w_ / 2.0f;  // bucket width
-	float range        = -1.0f;		// limited search range
-	if (R > MAXREAL - 1.0f) range = MAXREAL;
-	else range = R * w_ / 2.0f;
+	float radius = 1.0f;			// search radius
+	float width  = radius * w_ / 2.0f;  // bucket width
+	float range  = R > MAXREAL-1.0f ? MAXREAL : R * w_ / 2.0f; // search range
 
 	while (true) {
 		// ---------------------------------------------------------------------
 		//  step 1: initialize the stop condition for current round
 		// ---------------------------------------------------------------------
 		int num_bucket = 0;
-		memset(bucket_flag_, true, m_ * SIZEBOOL);
+		memset(bucket_flag, true, m_ * SIZEBOOL);
 
 		// ---------------------------------------------------------------------
 		//  step 2: (R,c)-NN search
 		// ---------------------------------------------------------------------
-		int cnt = -1, pos = -1, id = -1;
 		while (num_bucket < m_ && num_range < m_) {
-			float ldist = -1.0f;	// left  proj dist to query
-			float rdist = -1.0f;	// right proj dist to query
-			float q_val = -1.0f;	// hash value of 
-			float dist  = -1.0f;	// l2-sqr dist
-
 			for (int j = 0; j < m_; ++j) {
-				if (!bucket_flag_[j]) continue;
+				if (!bucket_flag[j]) continue;
 
 				table = tables_[j];
-				q_val = q_val_[j];
+				float q_v = q_val[j], ldist = -1.0f, rdist = -1.0f;
 				// -------------------------------------------------------------
 				//  step 2.1: scan the left part of hash table
 				// -------------------------------------------------------------
-				cnt = 0;
-				pos = lpos_[j];
+				int cnt = 0;
+				int pos = lpos[j];
 				while (cnt < SCAN_SIZE) {
 					ldist = MAXREAL;
 					if (pos >= 0) {
-						ldist = fabs(q_val - table[pos].key_);
+						ldist = fabs(q_v - table[pos].key_);
 					}
-					if (ldist > bucket_width || ldist > range) break;
+					else break;
+					if (ldist > width || ldist > range) break;
 
-					id = table[pos].id_;
-					if (++freq_[id] >= l_ && !checked_[id]) {
-						checked_[id] = true;
-						dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
-						kdist = list->insert(dist, object_id[id]);
+					int id = table[pos].id_;
+					if (++freq[id] >= l_ && !checked[id]) {
+						checked[id] = true;
+						cand.push_back(id);
 
-						if (++dist_cnt >= candidates) break;
+						if (++cand_cnt >= candidates) break;
 					}
 					--pos; ++cnt;
 				}
-				if (dist_cnt >= candidates) break;
-				lpos_[j] = pos;
+				if (cand_cnt >= candidates) break;
+				lpos[j] = pos;
 
 				// -------------------------------------------------------------
 				//  step 2.2: scan the right part of hash table
 				// -------------------------------------------------------------
 				cnt = 0;
-				pos = rpos_[j];
+				pos = rpos[j];
 				while (cnt < SCAN_SIZE) {
 					rdist = MAXREAL;
 					if (pos < n_pts_) {
-						rdist = fabs(q_val - table[pos].key_);
+						rdist = fabs(q_v - table[pos].key_);
 					}
-					if (rdist > bucket_width || rdist > range) break;
+					else break;
+					if (rdist > width || rdist > range) break;
 
-					id = table[pos].id_;
-					if (++freq_[id] >= l_ && !checked_[id]) {
-						checked_[id] = true;
-						dist = calc_lp_dist(dim_, p_, kdist, data_[id], query);
-						kdist = list->insert(dist, object_id[id]);
+					int id = table[pos].id_;
+					if (++freq[id] >= l_ && !checked[id]) {
+						checked[id] = true;
+						cand.push_back(id);
 
-						if (++dist_cnt >= candidates) break;
+						if (++cand_cnt >= candidates) break;
 					}
 					++pos; ++cnt;
 				}
-				if (dist_cnt >= candidates) break;
-				rpos_[j] = pos;
+				if (cand_cnt >= candidates) break;
+				rpos[j] = pos;
 
 				// -------------------------------------------------------------
-				//  step 2.3: check whether this bucket_width is finished scanned
+				//  step 2.3: check whether this width is finished scanned
 				// -------------------------------------------------------------
-				if (ldist > bucket_width && rdist > bucket_width) {
-					bucket_flag_[j] = false;
+				if (ldist > width && rdist > width) {
+					bucket_flag[j] = false;
 					if (++num_bucket > m_) break;
 				}
 				if (ldist > range && rdist > range) {
-					if (bucket_flag_[j]) {
-						bucket_flag_[j] = false;
+					if (bucket_flag[j]) {
+						bucket_flag[j] = false;
 						if (++num_bucket > m_) break;
 					}
-					if (range_flag_[j]) {
-						range_flag_[j] = false;
+					if (range_flag[j]) {
+						range_flag[j] = false;
 						if (++num_range > m_) break;
 					}
 				}
 			}
-			if (dist_cnt >= candidates) break;
+			if (num_bucket > m_ || num_range > m_ || cand_cnt >= candidates) break;
 		}
 		// ---------------------------------------------------------------------
-		//  step 3: terminating conditions
+		//  step 3: stop conditions
 		// ---------------------------------------------------------------------
-		if (num_range >= m_ || dist_cnt >= candidates) break;
+		if (num_range >= m_ || cand_cnt >= candidates) break;
 
 		// ---------------------------------------------------------------------
 		//  step 4: auto-update <radius>
 		// ---------------------------------------------------------------------
-		radius = appr_ratio_ * radius;
-		bucket_width = radius * w_ / 2.0f;
+		radius = radius * ratio_;
+		width  = radius * w_ / 2.0f;
 	}
+	// -------------------------------------------------------------------------
+	//  release space
+	// -------------------------------------------------------------------------
+	delete[] freq;        freq        = NULL;
+	delete[] lpos;        lpos        = NULL;
+	delete[] rpos;        rpos        = NULL;
+	delete[] checked;     checked     = NULL;
+	delete[] bucket_flag; bucket_flag = NULL;
+	delete[] range_flag;  range_flag  = NULL;
+	delete[] q_val;       q_val       = NULL;
+
 	return 0;
 }
-
-// -----------------------------------------------------------------------------
-int QALSH::binary_search_pos(		// binary search position
-	int   tid,							// hash table is
-	float value)						// hash value
-{
-	int left  = 0;
-	int right = n_pts_ - 1;
-	int mid   = 0;
-
-	Result *table = tables_[tid];
-	while (left < right) {
-		mid = (left + right + 1) / 2;
-		if (fabs(table[mid].key_ - value) < FLOATZERO) {
-			return mid;
-		}
-		if (table[mid].key_ < value) left = mid;
-		else right = mid - 1;
-	}
-	// assert(left >= 0 && left < n_pts_);
-
-	return left;
-}
-
-
-
-
-
-
-
-
-
-
-

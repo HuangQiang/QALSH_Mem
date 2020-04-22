@@ -1,10 +1,65 @@
-#include <algorithm>
-#include <vector>
-
-#include "def.h"
-#include "kd_rect.h"
-#include "kd_node.h"
 #include "kd_tree.h"
+
+// -----------------------------------------------------------------------------
+//	KD_Rect: orthogonal rectangle for bounding rectangle of kd-tree
+// -----------------------------------------------------------------------------
+KD_Rect::KD_Rect(					// constructor
+	int   dim,							// dimension
+	float l,							// lower bound
+	float h)							// higher bound
+{
+	low_  = new float[dim];
+	high_ = new float[dim];
+
+	memset(low_,  l, dim * SIZEFLOAT);
+	memset(high_, h, dim * SIZEFLOAT);
+}
+
+// -----------------------------------------------------------------------------
+KD_Rect::KD_Rect(					// copy constructor
+	int   dim,							// dimension
+	const KD_Rect &rect)				// copy item
+{
+	low_  = new float[dim];
+	high_ = new float[dim];
+	for (int i = 0; i < dim; ++i) {
+		low_[i]  = rect.low_[i];
+		high_[i] = rect.high_[i];
+	}
+}
+
+// -----------------------------------------------------------------------------
+KD_Rect::KD_Rect(					// constrcutor
+	int   dim,							// dimension
+	const float *low,					// lower corner point
+	const float *high)					// higher corner point
+{
+	low_  = new float[dim];
+	high_ = new float[dim];
+	for (int i = 0; i < dim; ++i) {
+		low_[i]  = low[i];
+		high_[i] = high[i];
+	}
+}
+
+// -----------------------------------------------------------------------------
+KD_Rect::~KD_Rect()					// destructor
+{
+	if (low_  != NULL) { delete[] low_;  low_  = NULL; }
+	if (high_ != NULL) { delete[] high_; high_ = NULL; }
+}
+
+// -----------------------------------------------------------------------------
+bool KD_Rect::inside(				// whether a point inside the rectangle
+	int   dim,							// dimension
+	const float *point)					// input point
+{
+	for (int i = 0; i < dim; ++i) {
+		if (point[i] < low_[i] || point[i] > high_[i]) return false;
+	}
+	return true;
+}
+
 
 // -----------------------------------------------------------------------------
 //	KD_Tree: structure for approximate and exact nearest neighbor search
@@ -12,43 +67,36 @@
 KD_Tree::KD_Tree(					// constructor
 	int   n,							// number of data objects
 	int   d,							// dimensionality
-	int   kd_leaf_size,					// leaf size of kd-tree
+	int   leaf,							// leaf size of kd-tree
 	const float **data)					// data objects
 {
-	n_pts_        = n;
-	dim_          = d;
-	kd_leaf_size_ = kd_leaf_size;
-	data_         = data;
-	object_id_    = new int[n_pts_];
-	for (int i = 0; i < n_pts_; ++i) object_id_[i] = i;
+	n_pts_     = n;
+	dim_       = d;
+	leaf_      = leaf;
+	data_      = data;
+	object_id_ = new int[n];
+	for (int i = 0; i < n; ++i) object_id_[i] = i;
 
-	KD_Rect bnd_box(dim_);
+	KD_Rect bnd_box(d);
 	calc_encl_rect(bnd_box);
 
-	bnd_box_low_  = new float[dim_];
-	bnd_box_high_ = new float[dim_];
-	for (int i = 0; i < dim_; ++i) {
-		bnd_box_low_[i] = bnd_box.low_[i];
+	bnd_box_low_  = new float[d];
+	bnd_box_high_ = new float[d];
+	for (int i = 0; i < d; ++i) {
+		bnd_box_low_[i]  = bnd_box.low_[i];
 		bnd_box_high_[i] = bnd_box.high_[i];
 	}
-	root_ = rkd_tree(n_pts_, object_id_, bnd_box);
+	root_ = rkd_tree(n, object_id_, bnd_box);
 }
 
 // -----------------------------------------------------------------------------
 KD_Tree::~KD_Tree()					// destructor
 {
-	if (root_ != NULL) {
-		delete root_; root_ = NULL;
-	}
-	if (object_id_ != NULL) {
-		delete[] object_id_; object_id_ = NULL;
-	}
-	if (bnd_box_low_ != NULL) {
-		delete[] bnd_box_low_; bnd_box_low_ = NULL;
-	}
-	if (bnd_box_high_ != NULL) {
-		delete[] bnd_box_high_; bnd_box_high_ = NULL;
-	}
+	if (root_ != NULL) { delete root_; root_ = NULL; }
+	if (object_id_ != NULL) { delete[] object_id_; object_id_ = NULL; }
+	
+	if (bnd_box_low_  != NULL) { delete[] bnd_box_low_;  bnd_box_low_  = NULL; }
+	if (bnd_box_high_ != NULL) { delete[] bnd_box_high_; bnd_box_high_ = NULL; }
 }
 
 // -----------------------------------------------------------------------------
@@ -79,7 +127,7 @@ KD_Node* KD_Tree::rkd_tree(			// recursive build kd-tree
 	int *object_id,						// object id (return)
 	KD_Rect	&bnd_box)					// bounding box for current node (return)
 {
-	if (n <= kd_leaf_size_) {
+	if (n <= leaf_) {
 		return new KD_Leaf(n, dim_, object_id, data_);
 	}
 	else {
@@ -128,33 +176,21 @@ void KD_Tree::sl_midpt_split(		// sliding mid-object split rule
 	cut_val = -1.0f;
 	cut_dim = -1;
 
-	float max_var = MINREAL;
-	float cut_min = -1.0f;
-	float cut_max = -1.0f;
-
-	float mean    = -1.0f;
-	float median  = -1.0f;
-	float var     = -1.0f;
-	float min     = -1.0f;
-	float max     = -1.0f;
-
+	float max_var = MINREAL, cut_min = -1.0f, cut_max = -1.0f;
+	float mean = -1.0f, median  = -1.0f, var = -1.0f, min = -1.0f, max = -1.0f;
 	for (int i = 0; i < dim_; ++i) {
 		calc_stat(n, i, (const int *) object_id, mean, median, var, min, max);
 
 		if (var > max_var) {
-			max_var = var;
-			cut_val = median; 
-			cut_dim = i;
-			cut_min = min;
-			cut_max = max;
+			max_var = var; cut_min = min; cut_max = max;
+			cut_val = median; cut_dim = i;
 		}
 	}
 
 	// -------------------------------------------------------------------------
 	//  permute points according to the <cut_dim> and <cut_val>
 	// -------------------------------------------------------------------------
-	int br1 = -1;
-	int br2 = -1;					
+	int br1 = -1, br2 = -1;					
 	plane_split(n, cut_dim, cut_val, object_id, br1, br2);
 
 	// -------------------------------------------------------------------------
@@ -186,12 +222,9 @@ void KD_Tree::calc_stat(			// calc median and variance value
 	//  calc mean, min, and max
 	// -------------------------------------------------------------------------
 	std::vector<float> arr(n);
-	float val  = data_[object_id[0]][d];
+	float val = data_[object_id[0]][d];
 
-	arr[0] = val;
-	min    = val;
-	max    = val;
-	mean   = val;
+	arr[0] = val; min = val; max = val; mean = val;
 	for (int i = 1; i < n; ++i) {
 		val = data_[object_id[i]][d];
 		arr[i] = val;
