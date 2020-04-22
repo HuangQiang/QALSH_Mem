@@ -74,22 +74,22 @@ If you would like to get more information to run other algorithms, please check 
 
 Finally, we introduce some tricks to set up parameters, i.e., ```leaf```, ```L```, ```M```, ```p```, ```z```, and ```c```.
 
-#### The settings of ```leaf```, ```L```, and ```M```
+### The settings of leaf, L, and M
 
-```leaf``` is the maximum leaf size of kd-tree. Thus, it should be smaller than the cardinality of dataset, i.e., ```leaf < n```. Let ```K``` be the number of blocks after kd-tree partitioning. Since we use kd-tree to divide the whole datasets into blocks, ```K``` is 2<sup>i</sup>, where ```i = ceil(log_2 (n/leaf))```. 
+```leaf``` is the maximum leaf size of kd-tree. Thus, it should be smaller than the cardinality of dataset, i.e., ```leaf < n```. Let ```K``` be the number of blocks after kd-tree partitioning. Since we use kd-tree to divide the whole datasets into blocks, ```K``` is 2<sup>i</sup>, where ```i = ceil(log_2 (n/leaf))```.
 
-```L```, and ```M``` are two parameters introduced by Drusilla Select. Once ```leaf``` is determined, the actual leaf size n<sub>0</sub> (also known as the number of objects in each block) can be estimated as floor(n / 2<sup>i</sup>) or ceil(n / 2<sup>i</sup>). There are two conditions when we set up ```L``` and ```M```: 
+```L```, and ```M``` are two parameters introduced by Drusilla Select. Once ```leaf``` is determined, the actual leaf size n<sub>0</sub> (also known as the number of objects in each block) can be estimated as floor(n / 2<sup>i</sup>) or ceil(n / 2<sup>i</sup>). There are two conditions when we set up ```L``` and ```M```:
 
 - (1) L * M < n<sub>0</sub>. Since we run drusilla select for each block to select the representative objects, it is a natural condition to restrict its size (L * M) less than n<sub>0</sub>.
 - (2) K * L * M ≈ n<sub>0</sub>. If the sample size (i.e., K*L*M) is large, we can well estimate which blocks are closer to the query, but it will a lot of extra time for estimation. If the sample size is small, the time to determine close blocks can be reduced, but these blocks may not be closer to the query than others. This condition is based on our observation. According to our experiments, we find that creating a sample set with cardinality similar to n<sub>0</sub> can achieve a good trade-off.
 
-#### The settings of ```p```, ```z```, and ```c```
+### The settings of p, z, and c
 
-```p``` and ```z``` determine the distance metric and the corresponding p-stable distribution. There are three common settings: 
+```p``` and ```z``` determine the distance metric and the corresponding p-stable distribution. There are three common settings:
 
 - (1) Euclidean distance (l<sub>2</sub> distance): we set ```p=2.0```, ```z=0.0``` and apply standard Gaussian distribution.
 - (2) Manhattan distance (l<sub>1</sub> distance): we set ```p=1.0```, ```z=0.0``` and apply standard Cauchy distribution.
-- (3) l<sub>0.5</sub> distance: we set ```p=0.5```, ```z=1.0``` and apply standard Levy distribution. 
+- (3) l<sub>0.5</sub> distance: we set ```p=0.5```, ```z=1.0``` and apply standard Levy distribution.
 
 In addition, for other l<sub>p</sub> distance, users can set ```0 < p ⩽ 2``` and ```-1 ⩽ z ⩽ 1```.
 

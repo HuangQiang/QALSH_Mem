@@ -32,7 +32,7 @@ public:
 		int   n,						// cardinality
 		int   d,						// dimensionality
 		float p,						// l_p distance
-		float zeta,						// a parameter of p-stable distr.
+		float zeta,						// symmetric factor of p-stable distr.
 		float ratio);					// approximation ratio
 
 	// -------------------------------------------------------------------------
@@ -40,7 +40,7 @@ public:
 		int   n,						// cardinality
 		int   d,						// dimensionality
 		float p,						// l_p distance
-		float zeta,						// a parameter of p-stable distr.
+		float zeta,						// symmetric factor of p-stable distr.
 		float ratio,					// approximation ratio
 		const float **data);			// data objects
 
@@ -72,7 +72,7 @@ public:
 	int    n_pts_;					// cardinality
 	int    dim_;					// dimensionality
 	float  p_;						// l_p distance
-	float  zeta_;					// a parameter of p-stable distr.
+	float  zeta_;					// symmetric factor of p-stable distr.
 	float  ratio_;					// approximation ratio
 	float  w_;						// bucket width
 	int    m_;						// number of hashtables
