@@ -1,7 +1,7 @@
 #include "util.h"
 
-timeval g_start_time;
-timeval g_end_time;
+timeval  g_start_time;
+timeval  g_end_time;
 
 uint64_t g_memory  = 0;
 float    g_runtime = -1.0f;
@@ -64,11 +64,11 @@ int read_txt_data(					// read data (text) from disk
 }
 
 // -----------------------------------------------------------------------------
-int read_bin_data(					// read data set (binary) from disk
+int read_bin_data(					// read data (binary) from disk
 	int   n,							// number of data points
 	int   d,							// dimensionality
 	const char *fname,					// address of data
-	float **data)						// data (return)
+	float **data)						// data/query objects (return)
 {
 	gettimeofday(&g_start_time, NULL);
 	FILE *fp = fopen(fname, "rb");
@@ -90,7 +90,6 @@ int read_bin_data(					// read data set (binary) from disk
 
 	return 0;
 }
-
 
 // -----------------------------------------------------------------------------
 int read_ground_truth(				// read ground truth results from disk

@@ -322,6 +322,8 @@ int QALSH_PLUS::knn(				// c-k-ANN search
 			radius = list->insert(dist, id);
 		}
 	}
+	delete cand_list; cand_list = NULL;
+	
 	return 0;
 }
 

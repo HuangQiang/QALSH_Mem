@@ -22,7 +22,7 @@ class MinK_List;
 // -----------------------------------------------------------------------------
 struct Block {
 	int   n_pts_;
-	const int *index_;
+	int   *index_;
 	QALSH *lsh_;
 
 	Block() { n_pts_ = -1; index_ = NULL; lsh_ = NULL; }
