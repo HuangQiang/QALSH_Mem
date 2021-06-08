@@ -47,37 +47,11 @@ public:
 		float p,						// l_p distance
 		float zeta,						// symmetric factor of p-stable distr.
 		float c,						// approximation ratio
-		const DType *data);				// data points
-	
-	// -------------------------------------------------------------------------
-	QALSH(							// constructor for QALSH+
-		int   n,						// number of data points
-		int   d,						// data dimension
-		float p,						// l_p distance
-		float zeta,						// symmetric factor of p-stable distr.
-		float c,						// approximation ratio
 		const DType *data,				// data points
-		const int *index);				// data index
+		const int *index = NULL);		// data index
 
 	// -------------------------------------------------------------------------
 	~QALSH();						// destructor
-
-	// -------------------------------------------------------------------------
-	void init();					// basic initialzation
-
-	// -------------------------------------------------------------------------
-	inline float calc_l0_prob(float x) { return new_levy_prob(x); }
-
-	// -------------------------------------------------------------------------
-	inline float calc_l1_prob(float x) { return new_cauchy_prob(x); }
-
-	// -------------------------------------------------------------------------
-	inline float calc_l2_prob(float x) { return new_gaussian_prob(x); }
-
-	// -------------------------------------------------------------------------
-	float calc_hash_value(			// calc hash value
-		int   tid,						// hash table id
-		const DType *data);				// one data/query
 
 	// -------------------------------------------------------------------------
 	void display();					// display parameters
@@ -102,6 +76,24 @@ public:
 		int   top_k,					// top-k value
 		const DType *query,				// input query
 		MinK_List *list);				// k-NN results (return)
+
+protected:
+	// -------------------------------------------------------------------------
+	void init();					// basic initialzation
+
+	// -------------------------------------------------------------------------
+	inline float calc_l0_prob(float x) { return new_levy_prob(x); }
+
+	// -------------------------------------------------------------------------
+	inline float calc_l1_prob(float x) { return new_cauchy_prob(x); }
+
+	// -------------------------------------------------------------------------
+	inline float calc_l2_prob(float x) { return new_gaussian_prob(x); }
+
+	// -------------------------------------------------------------------------
+	inline float calc_hash_value(int tid, const DType *data) { 
+		return calc_inner_product<DType>(dim_, &a_[tid*dim_], data);
+	}
 };
 
 // -----------------------------------------------------------------------------
@@ -112,9 +104,11 @@ QALSH<DType>::QALSH(				// constructor
 	float p,							// l_p distance
 	float zeta,							// symmetric factor of p-stable distr.
 	float c,							// approximation ratio
-	const DType *data)					// data points
-	: n_pts_(n), dim_(d), p_(p), zeta_(zeta), c_(c), data_(data), index_(NULL)
+	const DType *data,					// data points
+	const int *index)					// data index
+	: n_pts_(n), dim_(d), p_(p), zeta_(zeta), c_(c), data_(data), index_(index)
 {
+	// inti basic parameters
 	init();
 
 	// bulkloading
@@ -122,8 +116,9 @@ QALSH<DType>::QALSH(				// constructor
 	for (int i = 0; i < m_; ++i) {
 		Result *table = &tables_[(uint64_t)i*n_pts_];
 		for (int j = 0; j < n_pts_; ++j) {
+			int id = index_ != NULL ? index_[j] : j;
 			table[j].id_  = j;
-			table[j].key_ = calc_hash_value(i, &data[(uint64_t)j*dim_]);
+			table[j].key_ = calc_hash_value(i, &data_[(uint64_t)id*dim_]);
 		}
 		qsort(table, n_pts_, sizeof(Result), ResultComp);
 	}
@@ -181,7 +176,7 @@ void QALSH<DType>::init()			// basic initialization
 
 	m_ = (int) ceil((para1 + para2) * (para1 + para2) / para3);
 	l_ = (int) ceil(alpha * m_);
-	
+
 	// generate hash functions <a_>
 	a_ = new float[m_*dim_];
 	for (uint64_t i = 0; i < m_*dim_; ++i) {
@@ -190,42 +185,6 @@ void QALSH<DType>::init()			// basic initialization
 		else if (fabs(p_-2.0f) < FLOATZERO) a_[i] = gaussian(0.0f, 1.0f);
 		else a_[i] = p_stable(p_, zeta_, 1.0f, 0.0f);
 	}
-}
-
-// -----------------------------------------------------------------------------
-template<class DType>
-QALSH<DType>::QALSH(				// constructor
-	int   n,							// number of data points
-	int   d,							// data dimension
-	float p,							// l_p distance
-	float zeta,							// symmetric factor of p-stable distr.
-	float c,							// approximation ratio
-	const DType *data,					// data points
-	const int *index)					// data index
-	: n_pts_(n), dim_(d), p_(p), zeta_(zeta), c_(c), data_(data), index_(index)
-{
-	init();
-
-	// bulkloading
-	tables_ = new Result[(uint64_t) m_*n_pts_];
-	for (int i = 0; i < m_; ++i) {
-		Result *table = &tables_[(uint64_t)i*n_pts_];
-		for (int j = 0; j < n_pts_; ++j) {
-			int id = index_[j];
-			table[j].id_  = j;
-			table[j].key_ = calc_hash_value(i, &data[(uint64_t)id*dim_]);
-		}
-		qsort(table, n_pts_, sizeof(Result), ResultComp);
-	}
-}
-
-// -----------------------------------------------------------------------------
-template<class DType>
-float QALSH<DType>::calc_hash_value(// calc hash value
-	int   tid,							// hash table id
-	const DType *data)					// one data/query
-{
-	return calc_inner_product<DType>(dim_, &a_[tid*dim_], data);
 }
 
 // -----------------------------------------------------------------------------
@@ -261,7 +220,7 @@ int QALSH<DType>::knn(				// k-nn search
 {
 	list->reset();
 
-	// init parameters
+	// initialize parameters for c-k-ANNS
 	int   *freq    = new int[n_pts_];  memset(freq, 0, n_pts_*SIZEINT);
 	bool  *checked = new bool[n_pts_]; memset(checked, false, n_pts_*SIZEBOOL);
 	int   *lpos    = new int[m_];
@@ -279,7 +238,7 @@ int QALSH<DType>::knn(				// k-nn search
 		else { lpos[i] = pos; rpos[i] = pos + 1; }
 	}
 
-	// c-k-ANN search via dynamic collision counting framework
+	// c-k-ANNS via dynamic collision counting framework
 	bool  *flag  = new bool[m_];	// flag for each hash table
 	int   candidates = CANDIDATES + top_k - 1; // candidate size
 	int   cand_cnt = 0;				// candidate counter
@@ -292,7 +251,7 @@ int QALSH<DType>::knn(				// k-nn search
 		int num_flag = 0;
 		memset(flag, true, m_*SIZEBOOL);
 
-		// step 2: (R,c)-NN search
+		// step 2: (R,c)-NN search (find frequent data points)
 		while (num_flag < m_) {
 			for (int j = 0; j < m_; ++j) {
 				if (!flag[j]) continue;
@@ -353,7 +312,7 @@ int QALSH<DType>::knn(				// k-nn search
 			if (num_flag >= m_ || cand_cnt >= candidates) break;
 		}
 		// step 3: stop conditions t1 and t2
-		if (kdist < c_ * radius && cand_cnt >= top_k) break;
+		if (kdist < c_*radius && cand_cnt >= top_k) break;
 		if (cand_cnt >= candidates) break;
 
 		// step 4: auto-update radius
@@ -378,7 +337,7 @@ int QALSH<DType>::knn2(				// k-NN search (assis for QALSH+)
 	const DType *query,					// input query
 	MinK_List *list)					// k-NN results (return)
 {
-	// init parameters
+	// initialize parameters for c-k-ANNS
 	int   *freq = new int[n_pts_]; memset(freq, 0, n_pts_*SIZEINT);
 	bool  *checked = new bool[n_pts_]; memset(checked, false, n_pts_*SIZEBOOL);
 	bool  *range_flag = new bool[m_]; memset(range_flag, true,  m_*SIZEBOOL);
@@ -397,7 +356,7 @@ int QALSH<DType>::knn2(				// k-NN search (assis for QALSH+)
 		else { lpos[i] = pos-1; rpos[i] = pos; }
 	}
 
-	// c-k-ANN search via dynamic collision counting framework
+	// c-k-ANNS via dynamic collision counting framework
 	bool *bucket_flag = new bool[m_];
 	int  candidates = CANDIDATES + top_k - 1; // candidate size
 	int  cand_cnt = 0;				// number of candidates computation	
@@ -413,7 +372,7 @@ int QALSH<DType>::knn2(				// k-NN search (assis for QALSH+)
 		int num_buckets = 0;
 		memset(bucket_flag, true, m_*SIZEBOOL);
 
-		// step 2: (R,c)-NN search
+		// step 2: (R,c)-NN search (find frequent data points)
 		while (num_buckets < m_ && num_range < m_) {
 			for (int j = 0; j < m_; ++j) {
 				if (!bucket_flag[j]) continue;

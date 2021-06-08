@@ -24,8 +24,8 @@ int ground_truth(					// find ground truth
 	const DType *query)					// query set
 {
 	gettimeofday(&g_start_time, NULL);
-	Result *truth = new Result[qn*MAXK];
-	MinK_List *list = new MinK_List(MAXK);
+	Result    *truth = new Result[qn*MAXK];
+	MinK_List *list  = new MinK_List(MAXK);
 
 	for (int i = 0; i < qn; ++i) {
 		kNN_search(n, d, MAXK, p, data, &query[(uint64_t)i*d], list);
@@ -78,7 +78,7 @@ int linear_scan(					// k-NN search by linear scan
 			g_ratio  += calc_ratio(top_k,  &truth[(uint64_t)i*MAXK], list);
 			g_recall += calc_recall(top_k, &truth[(uint64_t)i*MAXK], list);
 		}
-		delete list; list = NULL;
+		delete list;
 		gettimeofday(&g_end_time, NULL);
 		g_runtime = g_end_time.tv_sec - g_start_time.tv_sec + 
 			(g_end_time.tv_usec - g_start_time.tv_usec) / 1000000.0f;

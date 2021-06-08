@@ -45,13 +45,13 @@ int write_ground_truth(				// write ground truth to disk
 // -----------------------------------------------------------------------------
 float calc_ratio(					// calc overall ratio [1,\infinity)
 	int   k,							// top-k value
-	const Result *R,					// ground truth results 
+	const Result *truth,				// ground truth results 
 	MinK_List *list);					// top-k approximate results
 
 // -----------------------------------------------------------------------------
 float calc_recall(					// calc recall (percentage)
 	int   k,							// top-k value
-	const Result *R,					// ground truth results 
+	const Result *truth,				// ground truth results 
 	MinK_List *list);					// results returned by algorithms
 
 // -----------------------------------------------------------------------------
@@ -115,6 +115,25 @@ float calc_l2_sqr(					// calc l2 square distance
 	const DType *aa = p1, *end_a = aa + d;
 	const DType *bb = p2, *end_b = bb + d;
 
+	// -------------------------------------------------------------------------
+	// __builtin_prefetch (const void *addr[, rw[, locality]])
+	// addr (required): Represents the address of the memory.
+	//
+	// rw (optional): A compile-time constant which can take the values:
+	//   0 (default): prepare the prefetch for a read
+	//   1 : prepare the prefetch for a write to the memory
+	// 
+	// locality (optional): A compile-time constant integer which can take the
+	// following temporal locality (L) values:
+	//   0: None, the data can be removed from the cache after the access
+	//   1: Low, L3 cache, leave the data in L3 cache after access
+	//   2: Moderate, L2 cache, leave the data in L2, L3 cache after access
+	//   3 (default): High, L1 cache, leave the data in L1, L2, and L3 cache
+	// -------------------------------------------------------------------------
+	const int SHIFT = 8 * sizeof(DType);
+	__builtin_prefetch(aa, 0, 3);
+	__builtin_prefetch(bb, 0, 0);
+
 	float r = 0.0f;
 	float r0, r1, r2, r3, r4, r5, r6, r7;
 
@@ -133,6 +152,9 @@ float calc_l2_sqr(					// calc l2 square distance
 
 	a = aa; b = bb;
 	for (; a < end_a; a += 8, b += 8) {
+		__builtin_prefetch(a+SHIFT, 0, 3);
+		__builtin_prefetch(b+SHIFT, 0, 0);
+
 		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
 		if (r > threshold) return r;
 
@@ -162,6 +184,10 @@ float calc_l1_dist(					// calc Manhattan distance
 	const DType *aa = p1, *end_a = aa + d;
 	const DType *bb = p2, *end_b = bb + d;
 
+	const int SHIFT = 8 * sizeof(DType);
+	__builtin_prefetch(aa, 0, 3);
+	__builtin_prefetch(bb, 0, 0);
+
 	float r = 0.0f;
 	float r0, r1, r2, r3, r4, r5, r6, r7;
 
@@ -180,6 +206,9 @@ float calc_l1_dist(					// calc Manhattan distance
 
 	a = aa; b = bb;
 	for (; a < end_a; a += 8, b += 8) {
+		__builtin_prefetch(a+SHIFT, 0, 3);
+		__builtin_prefetch(b+SHIFT, 0, 0);
+
 		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
 		if (r > threshold) return r;
 
@@ -209,6 +238,10 @@ float calc_l0_sqrt(					// calc L_{0.5} sqrt distance
 	const DType *aa = p1, *end_a = aa + d;
 	const DType *bb = p2, *end_b = bb + d;
 
+	const int SHIFT = 8 * sizeof(DType);
+	__builtin_prefetch(aa, 0, 3);
+	__builtin_prefetch(bb, 0, 0);
+
 	float r = 0.0f;
 	float r0, r1, r2, r3, r4, r5, r6, r7;
 
@@ -227,6 +260,9 @@ float calc_l0_sqrt(					// calc L_{0.5} sqrt distance
 
 	a = aa; b = bb;
 	for (; a < end_a; a += 8, b += 8) {
+		__builtin_prefetch(a+SHIFT, 0, 3);
+		__builtin_prefetch(b+SHIFT, 0, 0);
+
 		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
 		if (r > threshold) return r;
 
@@ -257,6 +293,10 @@ float calc_lp_pow(					// calc L_p pow_p distance
 	const DType *aa = p1, *end_a = aa + d;
 	const DType *bb = p2, *end_b = bb + d;
 
+	const int SHIFT = 8 * sizeof(DType);
+	__builtin_prefetch(aa, 0, 3);
+	__builtin_prefetch(bb, 0, 0);
+
 	float r = 0.0f;
 	float r0, r1, r2, r3, r4, r5, r6, r7;
 
@@ -275,6 +315,9 @@ float calc_lp_pow(					// calc L_p pow_p distance
 
 	a = aa; b = bb;
 	for (; a < end_a; a += 8, b += 8) {
+		__builtin_prefetch(a+SHIFT, 0, 3);
+		__builtin_prefetch(b+SHIFT, 0, 0);
+
 		r += r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
 		if (r > threshold) return r;
 

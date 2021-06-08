@@ -1,7 +1,7 @@
 #include <iostream>
 #include <algorithm>
-#include <cmath>
 #include <cassert>
+#include <cmath>
 #include <cstring>
 
 #include "def.h"
@@ -47,7 +47,7 @@ void usage() 						// display usage of this package
 		"        Params: -alg 3 -n -qn -d -p -dt -pf -of\n"
 		"\n"
 		"--------------------------------------------------------------------\n"
-		" Author: Qiang Huang (huangq2011@gmail.com)                         \n"
+		" Author: Qiang Huang (huangq@comp.nus.edu.sg, huangq2011@gmail.com) \n"
 		"--------------------------------------------------------------------\n"
 		"\n\n\n");
 }
@@ -65,8 +65,8 @@ void interface(						// interface for calling function
 	float p,							// p-stable distr. (0,2]
 	float zeta,							// symmetric factor of p-distr. [-1,1]
 	float c,							// approximation ratio
-	const char *prefix,					// address of query set
-	const char *folder)					// address of truth set
+	const char *prefix,					// prefix of data, query, and truth
+	const char *folder)					// output folder
 {
 	// read data set, query set, and ground truth file
 	gettimeofday(&g_start_time, NULL);
@@ -107,7 +107,6 @@ void interface(						// interface for calling function
 		printf("Parameters error!\n");
 		usage();
 	}
-
 	// release space
 	delete[] data; delete[] query;
 	if (alg > 0) delete[] truth;
@@ -116,7 +115,7 @@ void interface(						// interface for calling function
 // -----------------------------------------------------------------------------
 int main(int nargs, char **args)
 {
-	srand(6);                       // use a fixed instead of srand(time(NULL));
+	srand(6);                       // use a fixed seed instead of time(NULL)
 
 	int   cnt  = 1;                 // parameter counter
 	int   alg  = -1;                // which algorithm

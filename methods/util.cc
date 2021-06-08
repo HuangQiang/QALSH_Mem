@@ -59,12 +59,12 @@ int write_ground_truth(				// write ground truth to disk
 // -----------------------------------------------------------------------------
 float calc_ratio(					// calc overall ratio [1,\infinity)
 	int   k,							// top-k value
-	const Result *R,					// ground truth results 
+	const Result *truth,					// ground truth results 
 	MinK_List *list)					// top-k approximate results
 {
 	float ratio = 0.0f;
 	for (int i = 0; i < k; ++i) {
-		ratio += list->ith_key(i) / R[i].key_;
+		ratio += list->ith_key(i) / truth[i].key_;
 	}
 	return ratio / k;
 }
@@ -72,12 +72,12 @@ float calc_ratio(					// calc overall ratio [1,\infinity)
 // -----------------------------------------------------------------------------
 float calc_recall(					// calc recall (percentage)
 	int   k,							// top-k value
-	const Result *R,					// ground truth results 
+	const Result *truth,				// ground truth results 
 	MinK_List *list)					// top-k approximate results
 {
 	int i = k - 1;
 	int last = k - 1;
-	while (i >= 0 && list->ith_key(i) > R[last].key_) {
+	while (i >= 0 && list->ith_key(i) > truth[last].key_) {
 		i--;
 	}
 	return (i + 1) * 100.0f / k;

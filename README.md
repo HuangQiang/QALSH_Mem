@@ -6,8 +6,7 @@ Welcome to the **QALSH_Mem** GitHub!
 
 This package provides the internal memory implementations of two LSH schemes QALSH and QALSH<sup>+</sup> for *c*-Approximate Nearest Neighbor Search (c-ANNS) under *l<sub>p</sub>* norm, where *0 < p ⩽ 2*. The external version of QALSH and QALSH<sup>+</sup> can be found [here](https://github.com/HuangQiang/QALSH).
 
-Please refer to our work [Query-Aware Locality-Sensitive Hashing for Approximate Nearest Neighbor Search](https://dl.acm.org/doi/abs/10.14778/2850469.2850470) and [Query-Aware Locality-Sensitive
-Hashing Scheme for *l<sub>p</sub>* Norm](https://link.springer.com/article/10.1007/s00778-017-0472-7) which have been published in PVLDB 2015 and VLDBJ 2017, respectively, to get more details of QALSH and QALSH<sup>+</sup>.
+If you want to get more details of QALSH and QALSH<sup>+</sup>, please refer to our works [Query-Aware Locality-Sensitive Hashing for Approximate Nearest Neighbor Search](https://dl.acm.org/doi/abs/10.14778/2850469.2850470) and [Query-Aware Locality-Sensitive Hashing Scheme for *l<sub>p</sub>* Norm](https://link.springer.com/article/10.1007/s00778-017-0472-7) which have been published in PVLDB 2015 and VLDBJ 2017, respectively.
 
 ## Datasets and Queries
 
@@ -51,7 +50,7 @@ cd methods/
 bash run_all.sh
 ```
 
-A gentle remind is that when you run QALSH or QALSH<sup>+</sup>, since they needs the ground truth results for evaluation, please first run `-alg 0` to get the ground truth results.
+A gentle reminder is that when running QALSH or QALSH<sup>+</sup>, since they need the ground truth results for evaluation, please first run `-alg 0` to get the ground truth results.
 
 ### Step 3. Parameter Settings
 

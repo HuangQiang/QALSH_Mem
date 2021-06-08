@@ -21,7 +21,7 @@ inline float uniform(				// r.v. from Uniform(min, max)
 	// assert(x >= min && x <= max);
 	// return x;
 
-	return min + (max - min) * (float)rand() / (float)RAND_MAX;
+	return min + (max-min) * (float) rand() / (float) RAND_MAX;
 }
 
 // -----------------------------------------------------------------------------
@@ -53,7 +53,7 @@ float p_stable(						// r.v. from p-satble distr.
 inline float gaussian_pdf(			// pdf of N(0, 1)
 	float x)							// variable
 {
-	return exp(-x * x / 2.0f) / sqrt(2.0f * PI);
+	return exp(-x*x/2.0f) / sqrt(2.0f*PI);
 }
 
 // -----------------------------------------------------------------------------
@@ -70,7 +70,7 @@ float new_gaussian_cdf(				// cdf of N(0, 1) in range [-x, x]
 inline float levy_pdf(				// pdf of Levy(1, 0)
 	float x)							// variable
 {
-	return exp(-1.0f / (2.0f * x)) / (sqrt(2.0f * PI) * pow(x, 1.5f));
+	return exp(-1.0f/(2.0f*x)) / (sqrt(2.0f*PI) * pow(x, 1.5f));
 }
 
 // -----------------------------------------------------------------------------
@@ -93,7 +93,7 @@ float new_gaussian_prob(			// calc new gaussian probability
 inline float orig_cauchy_prob(		// calc original cauchy probability
 	float x)							// x = w / r
 {
-	return 2.0F * atan(x) / PI - log(1.0F + x * x) / (PI * x);
+	return 2.0F*atan(x)/PI - log(1.0F+x*x) / (PI*x);
 }
 
 // -----------------------------------------------------------------------------

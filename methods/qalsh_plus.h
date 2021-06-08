@@ -75,8 +75,8 @@ protected:
 	int   n_blocks_;				// number of blocks 
 	int   *index_;					// data index after kd-tree partition
 	DType *sample_data_;			// sample data
-	QALSH<DType> *lsh_;				// lsh index of sample data points
-	std::vector<QALSH<DType>*> blocks_; // index of blocks
+	QALSH<DType> *lsh_;				// first level lsh index for sample data
+	std::vector<QALSH<DType>*> blocks_; // second level lsh index for blocks
 
 	// -------------------------------------------------------------------------
 	void kd_tree_partition(			// kd-tree partition
@@ -89,13 +89,13 @@ protected:
 		int   n,						// number of data in a block
 		int   L,						// #projection for drusilla-select
 		int   M,						// #candidates for drusilla-select
-		const int *index,				// data index
+		const int *index,				// data index for this block
 		DType *sample_data);			// sample data (return)
 
 	// -------------------------------------------------------------------------
 	void calc_shift_data(			// calculate shift data points
-		int   n,						// number of data points
-		const int *index,				// data index
+		int   n,						// number of data points in this block
+		const int *index,				// data index in this block
 		int   &max_id,					// data id with max l2-norm (return)
 		float &max_norm,				// max l2-norm (return)
 		float *norm,					// l2-norm of shift data (return)
@@ -121,7 +121,7 @@ protected:
 		const float *shift_data);		// input shift data
 
 	// -------------------------------------------------------------------------
-	void copy(						// copy original data with id to sample_data
+	void copy(						// copy original data to sample data
 		int   id,						// input data id
 		DType *sample_data);			// sample data (return)
 
@@ -146,38 +146,40 @@ QALSH_PLUS<DType>::QALSH_PLUS(		// constructor
 	const DType *data)					// data points
 	: n_pts_(n), dim_(d), n_samples_(L*M), data_(data)
 {
-	// use kd-tree partition to get n_blocks_
+	// use kd-tree partition to get n_blocks_ and index_
 	index_ = new int[n];
 	std::vector<int> block_size;
 	kd_tree_partition(leaf, block_size, index_);
 
 	// init sample_data_ and build qalsh for each block
-	sample_data_ = new DType[(uint64_t)n_blocks_*n_samples_*dim_];
+	int n_sample_pts = n_blocks_*n_samples_;
+	sample_data_ = new DType[(uint64_t) n_sample_pts*dim_];
 
 	int start = 0;
 	int count = 0;
 	for (int i = 0; i < n_blocks_; ++i) {
-		// get sample data from each blcok using drusilla-select
 		int n_blk = block_size[i]; 
+		const int *index = (const int*) &index_[start];
+
+		// get sample data from each blcok using drusilla-select
 		assert(n_blk > n_samples_);
-		drusilla_select(n_blk, L, M, (const int*) &index_[start], 
-			&sample_data_[(uint64_t)count*dim_]);
+		drusilla_select(n_blk, L, M, index, &sample_data_[(uint64_t)count*dim_]);
 
 		// build qalsh for each blcok
-		QALSH<DType> *lsh = new QALSH<DType>(n_blk, d, p, zeta, c, data,
-			(const int*) &index_[start]);
+		QALSH<DType> *lsh = new QALSH<DType>(n_blk, d, p, zeta, c, data, index);
 		blocks_.push_back(lsh);
 
 		// update parameters
 		start += n_blk;
 		count += n_samples_;
 	}
-	assert(start == n);
-	assert(count == n_blocks_*n_samples_);
+	assert(start == n && count == n_sample_pts);
 
 	// build qalsh for sample_data
-	lsh_ = new QALSH<DType>(n_blocks_*n_samples_, d, p, zeta, c, 
+	lsh_ = new QALSH<DType>(n_sample_pts, d, p, zeta, c, 
 		(const DType*) sample_data_);
+	
+	block_size.clear(); block_size.shrink_to_fit();
 }
 
 // -----------------------------------------------------------------------------
@@ -190,7 +192,7 @@ void QALSH_PLUS<DType>::kd_tree_partition(// kd-tree partition
 	// build a kd-tree for input data with specific leaf size
 	KD_Tree<DType> *tree = new KD_Tree<DType>(n_pts_, dim_, leaf, data_);
 	
-	// init n_blocks_
+	// init index_ and n_blocks_
 	tree->traversal(block_size, index);
 	n_blocks_ = (int) block_size.size(); assert(n_blocks_ > 0);
 	delete tree;
@@ -206,18 +208,19 @@ void QALSH_PLUS<DType>::drusilla_select(// drusilla select
 	DType *sample_data)					// sample data (return)
 {
 	// calc shift data
-	int   max_id   = -1;
-	float max_norm = MINREAL;
-	float *norm = new float[n];
+	int   max_id      = -1;
+	float max_norm    = MINREAL;
+	float *norm       = new float[n];
 	float *shift_data = new float[(uint64_t)n*dim_];
 	
 	calc_shift_data(n, index, max_id, max_norm, norm, shift_data);
 
 	// drusilla select
-	float  *proj  = new float[dim_];
-	Result *score = new Result[n];
+	float  *proj        = new float[dim_];
+	Result *score       = new Result[n];
 	bool   *close_angle = new bool[n];
-	float  offset, distortion;
+	float  offset       = -1.0f;
+	float  distortion   = -1.0f;
 
 	for (int i = 0; i < L; ++i) {
 		// select the projection vector with largest norm and normalize it
@@ -227,6 +230,7 @@ void QALSH_PLUS<DType>::drusilla_select(// drusilla select
 		for (int j = 0; j < n; ++j) {
 			close_angle[j] = false;
 			score[j].id_ = j;
+
 			if (norm[j] > 0.0f) {
 				const float *tmp = &shift_data[(uint64_t)j*dim_];
 				offset = calc_inner_product<float>(dim_, (const float*)proj, tmp);
@@ -251,10 +255,8 @@ void QALSH_PLUS<DType>::drusilla_select(// drusilla select
 			copy(index[id], &sample_data[(uint64_t)(i*M+j)*dim_]);
 			norm[id] = -1.0f;
 		}
-
 		// find the next data id (max_id) with max l2-norm
-		max_id   = -1;
-		max_norm = MINREAL;
+		max_id = -1; max_norm = MINREAL;
 		for (int j = 0; j < n; ++j) {
 			if (norm[j] > 0.0f && close_angle[j]) { norm[j] = 0.0f; }
 			if (norm[j] > max_norm) { max_norm = norm[j]; max_id = j; }
@@ -280,9 +282,8 @@ void QALSH_PLUS<DType>::calc_shift_data(// calculate shift data points
 {
 	// calculate the centroid of data points 
 	float *centroid = new float[dim_]; memset(centroid, 0.0, dim_*SIZEFLOAT);
-
 	for (int i = 0; i < n; ++i) {
-		const DType *tmp = &data_[(uint64_t)index[i]*dim_];
+		const DType *tmp = &data_[(uint64_t) index[i]*dim_];
 		for (int j = 0; j < dim_; ++j) {
 			centroid[j] += (float) tmp[j];
 		}
@@ -294,7 +295,6 @@ void QALSH_PLUS<DType>::calc_shift_data(// calculate shift data points
 	for (int i = 0; i < n; ++i) {
 		shift(&data_[(uint64_t) index[i]*dim_], centroid, norm[i], 
 			&shift_data[(uint64_t) i*dim_]);
-
 		if (norm[i] > max_norm) { max_norm = norm[i]; max_id = i; }
 	}
 	delete[] centroid;
@@ -311,9 +311,7 @@ void QALSH_PLUS<DType>::shift(		// shift the original data by centroid
 	norm = 0.0f;
 	for (int j = 0; j < dim_; ++j) {
 		float tmp = (float) data[j] - centroid[j];
-		
-		shift_data[j] = tmp;
-		norm += tmp * tmp;
+		shift_data[j] = tmp; norm += tmp * tmp;
 	}
 	norm = sqrt(norm);
 }
@@ -332,7 +330,7 @@ void QALSH_PLUS<DType>::select_proj(// select project vector
 
 // -----------------------------------------------------------------------------
 template<class DType>
-float QALSH_PLUS<DType>::calc_distortion(// calc distortion
+float QALSH_PLUS<DType>::calc_distortion(// calc distortion (l2-sqr)
 	float offset,							// offset
 	const float *proj,						// projection vector
 	const float *shift_data)				// input shift data
@@ -361,14 +359,14 @@ void QALSH_PLUS<DType>::copy(		// copy original data with id to sample_data
 template<class DType>
 QALSH_PLUS<DType>::~QALSH_PLUS()	// destructor
 {
-	delete lsh_;
-	delete[] sample_data_;
-	delete[] index_;
-
 	for (int i = 0; i < n_blocks_; ++i) {
-		delete blocks_[i];
+		delete blocks_[i]; blocks_[i] = NULL;
 	}
 	blocks_.clear(); blocks_.shrink_to_fit();
+	delete lsh_;
+
+	delete[] sample_data_;
+	delete[] index_;
 }
 
 // -----------------------------------------------------------------------------
@@ -391,10 +389,10 @@ int QALSH_PLUS<DType>::knn(			// c-k-ANN search
 	const DType *query,					// input query points
 	MinK_List *list)					// k-NN results
 {
-	assert(nb >= 1 && nb <= n_blocks_);
+	assert(nb > 0 && nb <= n_blocks_);
 	list->reset();
 
-	// use sample data to determine block_order for k-NN search
+	// use sample data to determine block_order (nb size) for k-NN search
 	std::vector<int> block_order;
 	get_block_order(nb, query, block_order);
 	
@@ -438,7 +436,7 @@ void QALSH_PLUS<DType>::get_block_order(// get block order
 		block_order.push_back(pair[i].id_);
 	}
 	delete[] pair;
-	delete list;
+	delete   list;
 }
 
 } // end namespace nns
