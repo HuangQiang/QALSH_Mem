@@ -34,7 +34,7 @@ public:
 		int   M,						// #candidates for drusilla-select
 		float p,						// l_p distance
 		float zeta,						// symmetric factor of p-stable distr.
-		float ratio,					// approximation ratio
+		float c,						// approximation ratio
 		const DType *data);				// data points
 
 	// -------------------------------------------------------------------------
@@ -49,8 +49,8 @@ public:
 	// -------------------------------------------------------------------------
 	uint64_t get_memory_usage() {	// get estimated memory usage
 		uint64_t ret = 0ULL;
-		ret += (uint64_t) sizeof(*this);
-		ret += (uint64_t) SIZEINT*n_pts_; // index_
+		ret += sizeof(*this);
+		ret += SIZEINT*n_pts_;		// index_
 		ret += (uint64_t) sizeof(DType)*n_blocks_*n_samples_*dim_; // sample_data_
 		ret += lsh_->get_memory_usage(); // first level lsh 
 		for (int i = 0; i < n_blocks_; ++i) { // second level lsh
@@ -127,7 +127,7 @@ protected:
 
 	// -------------------------------------------------------------------------
 	void get_block_order(			// get block order
-		int nb,							// number of blocks for search
+		int   nb,						// number of blocks for search
 		const DType *query,				// input query points
 		std::vector<int> &block_order);	// block order (return)
 };
@@ -135,7 +135,7 @@ protected:
 // -----------------------------------------------------------------------------
 template<class DType>
 QALSH_PLUS<DType>::QALSH_PLUS(		// constructor
-	int   n,							// cardinality
+	int   n,							// number of data points
 	int   d,							// dimensionality
 	int   leaf,							// leaf size of kd-tree
 	int   L,							// #projection for drusilla-select
@@ -374,10 +374,10 @@ template<class DType>
 void QALSH_PLUS<DType>::display()	// display parameters
 {
 	printf("Parameters of QALSH+:\n");
-	printf("    n         = %d\n", n_pts_);
-	printf("    d         = %d\n", dim_);
-	printf("    n_samples = %d\n", n_samples_);
-	printf("    n_blocks  = %d\n", n_blocks_);
+	printf("n         = %d\n", n_pts_);
+	printf("d         = %d\n", dim_);
+	printf("n_samples = %d\n", n_samples_);
+	printf("n_blocks  = %d\n", n_blocks_);
 	printf("\n");
 }
 
@@ -409,7 +409,7 @@ int QALSH_PLUS<DType>::knn(			// c-k-ANN search
 // -----------------------------------------------------------------------------
 template<class DType>
 void QALSH_PLUS<DType>::get_block_order(// get block order
-	int nb,								// number of blocks for search
+	int   nb,							// number of blocks for search
 	const DType *query,					// input query points
 	std::vector<int> &block_order)		// block order (return)
 {

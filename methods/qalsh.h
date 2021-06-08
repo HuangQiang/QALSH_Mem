@@ -72,14 +72,14 @@ public:
 		MinK_List *list);				// k-NN results (return)
 
 	// -------------------------------------------------------------------------
-	int knn2(						// k-NN search (assit for QALSH+)
+	int knn2(						// k-NN search (assit func for QALSH+)
 		int   top_k,					// top-k value
 		const DType *query,				// input query
 		MinK_List *list);				// k-NN results (return)
 
 protected:
 	// -------------------------------------------------------------------------
-	void init();					// basic initialzation
+	void init();					// initialze basic parameters
 
 	// -------------------------------------------------------------------------
 	inline float calc_l0_prob(float x) { return new_levy_prob(x); }
@@ -126,7 +126,7 @@ QALSH<DType>::QALSH(				// constructor
 
 // -----------------------------------------------------------------------------
 template<class DType>
-void QALSH<DType>::init()			// basic initialization
+void QALSH<DType>::init()			// initialize basic parameters
 {
 	// -------------------------------------------------------------------------
 	//  init <w_> <m_> and <l_> (auto tuning-w)
@@ -200,14 +200,14 @@ template<class DType>
 void QALSH<DType>::display()		// display parameters
 {
 	printf("Parameters of QALSH:\n");
-	printf("    n     = %d\n",   n_pts_);
-	printf("    d     = %d\n",   dim_);
-	printf("    p     = %.1f\n", p_);
-	printf("    zeta  = %.1f\n", zeta_);
-	printf("    c     = %.1f\n", c_);
-	printf("    w     = %f\n",   w_);
-	printf("    m     = %d\n",   m_);
-	printf("    l     = %d\n",   l_);
+	printf("n     = %d\n",   n_pts_);
+	printf("d     = %d\n",   dim_);
+	printf("p     = %.1f\n", p_);
+	printf("zeta  = %.1f\n", zeta_);
+	printf("c     = %.1f\n", c_);
+	printf("w     = %f\n",   w_);
+	printf("m     = %d\n",   m_);
+	printf("l     = %d\n",   l_);
 	printf("\n");
 }
 
@@ -221,12 +221,12 @@ int QALSH<DType>::knn(				// k-nn search
 	list->reset();
 
 	// initialize parameters for c-k-ANNS
-	int   *freq    = new int[n_pts_];  memset(freq, 0, n_pts_*SIZEINT);
-	bool  *checked = new bool[n_pts_]; memset(checked, false, n_pts_*SIZEBOOL);
-	int   *lpos    = new int[m_];
-	int   *rpos    = new int[m_];
-	float *q_val   = new float[m_];
+	int  *freq    = new int[n_pts_];  memset(freq, 0, n_pts_*SIZEINT);
+	bool *checked = new bool[n_pts_]; memset(checked, false, n_pts_*SIZEBOOL);
 
+	int   *lpos  = new int[m_];
+	int   *rpos  = new int[m_];
+	float *q_val = new float[m_];
 	for (int i = 0; i < m_; ++i) {
 		Result tmp;
 		tmp.key_ = calc_hash_value(i, query);
@@ -332,7 +332,7 @@ int QALSH<DType>::knn(				// k-nn search
 
 // -----------------------------------------------------------------------------
 template<class DType>
-int QALSH<DType>::knn2(				// k-NN search (assis for QALSH+)
+int QALSH<DType>::knn2(				// k-NN search (assis func for QALSH+)
 	int   top_k,						// top-k value
 	const DType *query,					// input query
 	MinK_List *list)					// k-NN results (return)

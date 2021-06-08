@@ -3,7 +3,7 @@ make clean
 make -j
 
 # ------------------------------------------------------------------------------
-#  Parameters
+#  Parameters ('dtype' has 4 options: uint8, uint16, int32, float32)
 # ------------------------------------------------------------------------------
 n=10000000
 qn=100
@@ -12,7 +12,7 @@ c=2.0
 leaf=40000
 L=20
 M=8
-dtype=uint16
+dtype=uint8
 dname=Sift10M
 pf=../data/${dname}/${dname}
 

@@ -19,9 +19,9 @@ int ground_truth(					// find ground truth
 	int   qn,							// number of query points
 	int   d,							// dimensionality
 	float p,							// l_p distance (0,2]
-	const char  *prefix,				// prefix of truth set
-	const DType *data,					// data set
-	const DType *query)					// query set
+	const char  *prefix,				// prefix of ground truth
+	const DType *data,					// data  points
+	const DType *query)					// query points
 {
 	gettimeofday(&g_start_time, NULL);
 	Result    *truth = new Result[qn*MAXK];
@@ -55,9 +55,9 @@ int linear_scan(					// k-NN search by linear scan
 	int   d,							// dimensionality
 	float p,							// l_p distance (0,2]
 	const char *folder,					// output folder
-	const DType *data,					// data  set
-	const DType *query,					// query set
-	const Result *truth)				// truth set
+	const DType *data,					// data  points
+	const DType *query,					// query points
+	const Result *truth)				// ground truth
 {
 	char fname[200]; sprintf(fname, "%slinear.out", folder);
 	FILE *fp = fopen(fname, "a+");
@@ -93,8 +93,8 @@ int linear_scan(					// k-NN search by linear scan
 	}
 	printf("\n");
 	fprintf(fp, "\n");
-	fclose(fp);
 	
+	fclose(fp);
 	return 0;
 }
 
@@ -111,9 +111,9 @@ int qalsh_plus(						// k-NN search by qalsh+
 	float zeta,							// symmetric factor of p-distr. [-1,1]
 	float c,							// approximation ratio
 	const char *folder,					// output folder
-	const DType *data,					// data  set
-	const DType *query,					// query set
-	const Result *truth)				// truth set
+	const DType *data,					// data  points
+	const DType *query,					// query points
+	const Result *truth)				// ground truth
 {
 	char fname[200]; sprintf(fname, "%sqalsh_plus.out", folder);
 	FILE *fp = fopen(fname, "a+");
@@ -173,7 +173,6 @@ int qalsh_plus(						// k-NN search by qalsh+
 	}
 	fclose(fp);
 	delete lsh;
-	
 	return 0;
 }
 
@@ -187,9 +186,9 @@ int qalsh(							// k-NN search by qalsh
 	float zeta,							// symmetric factor of p-distr. [-1,1]
 	float c,							// approximation ratio
 	const char *folder,					// output folder
-	const DType *data,					// data  set
-	const DType *query,					// query set
-	const Result *truth)				// truth set
+	const DType *data,					// data  points
+	const DType *query,					// query points
+	const Result *truth)				// ground truth
 {	
 	char fname[200]; sprintf(fname, "%sqalsh.out", folder);
 	FILE *fp = fopen(fname, "a+");
@@ -240,9 +239,9 @@ int qalsh(							// k-NN search by qalsh
 	}
 	printf("\n");
 	fprintf(fp, "\n");
+
 	fclose(fp);
 	delete lsh;
-
 	return 0;
 }
 

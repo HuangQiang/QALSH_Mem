@@ -108,7 +108,8 @@ void interface(						// interface for calling function
 		usage();
 	}
 	// release space
-	delete[] data; delete[] query;
+	delete[] data;
+	delete[] query;
 	if (alg > 0) delete[] truth;
 }
 
