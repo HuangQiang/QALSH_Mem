@@ -1,4 +1,4 @@
-# QALSH_Mem: Internal Memory Implementation of QALSH
+# QALSH_Mem: Memory Version of QALSH
 
 Welcome to the **QALSH_Mem** GitHub!
 
@@ -6,13 +6,13 @@ Welcome to the **QALSH_Mem** GitHub!
 
 This package provides the internal memory implementations of two LSH schemes QALSH and QALSH<sup>+</sup> for *c*-Approximate Nearest Neighbor Search (c-ANNS) under *l<sub>p</sub>* norm, where *0 < p ⩽ 2*. The external version of QALSH and QALSH<sup>+</sup> can be found [here](https://github.com/HuangQiang/QALSH).
 
-If you want to get more details of QALSH and QALSH<sup>+</sup>, please refer to our works [Query-Aware Locality-Sensitive Hashing for Approximate Nearest Neighbor Search](https://dl.acm.org/doi/abs/10.14778/2850469.2850470) and [Query-Aware Locality-Sensitive Hashing Scheme for *l<sub>p</sub>* Norm](https://link.springer.com/article/10.1007/s00778-017-0472-7) which have been published in PVLDB 2015 and VLDBJ 2017, respectively.
+If you want to get more details of QALSH and QALSH<sup>+</sup>, please refer to our works [Query-Aware Locality-Sensitive Hashing for Approximate Nearest Neighbor Search](https://dl.acm.org/doi/abs/10.14778/2850469.2850470) and [Query-Aware Locality-Sensitive Hashing Scheme for *l<sub>p</sub>* Norm](https://link.springer.com/article/10.1007/s00778-017-0472-7), which have been published in PVLDB 2015 and VLDBJ 2017, respectively.
 
 ## Datasets and Queries
 
 We study the performance of QALSH and QALSH<sup>+</sup> over six real-life [datasets](https://drive.google.com/drive/folders/1tKMl0_iLSEeuT1ZJ7s4x1BbLHyX0D5OJ), i.e., Mnist, P53, Trevi, Gist, Sift, and Sift10M. For each dataset, we provide 100 queries (randomly select from its test set or extract from the dataset itself) for evaluations. The statistics of datasets and queries are summarized as follows.
 
-| Datasets | #Data Points | #Queries | Dimensionality | Range of Coordinate | Data Type |
+| Datasets | #Data Points | #Queries | Dimensionality | Range of Coordinates | Data Type |
 | -------- | ------------ | -------- | -------------- | ----------- | --------- |
 | Mnist    | 60,000       | 100      | 50             | [0, 255]    | uint8     |
 | P53      | 31,059       | 100      | 5,408          | [0, 10,000] | uint16    |
@@ -50,13 +50,12 @@ cd methods/
 bash run_all.sh
 ```
 
-A gentle reminder is that when running QALSH or QALSH<sup>+</sup>, since they need the ground truth results for evaluation, please first run `-alg 0` to get the ground truth results.
+A gentle reminder is that when running QALSH and QALSH<sup>+</sup>, since they need the ground truth results for evaluation, please run `-alg 0` to get the ground truth results first.
 
 ### Step 3. Parameter Settings
 
 Finally, if you would like to use this package for *c*-ANNS over other datasets, you may want to get more information about the parameters and know how to set them effectively.
-
-Based on our experience when we conduct the experiments, we now discuss some tricks to set up the parameters, i.e., `lf`, `L`, `M`, `p`, `z`, and `c`. The illustration of the parameters are as follows.
+Based on our experience when we conducted the experiments, we now share some tricks on setting up the parameters, i.e., `lf`, `L`, `M`, `p`, `z`, and `c`. The illustration of the parameters are as follows.
 
 ```bash
   -alg    integer    options of algorithms (0 - 3)
@@ -94,18 +93,18 @@ When we set up these three parameters `lf`, `L` and `M`, it might be better to s
 
 #### The settings of `p`, `z`, and `c`
 
-`p` and `z` determine the distance metric and the corresponding p-stable distribution. There are four settings as follows.
+`p` and `z` determine the distance metric and the corresponding p-stable distribution. There are four cases as follows.
 
 - *l<sub>2</sub>* distance: set up **p = 2.0** and **z = 0.0**, and apply standard Gaussian distribution.
 - *l<sub>1</sub>* distance: set up **p = 1.0** and **z = 0.0** and apply standard Cauchy distribution.
 - *l<sub>0.5</sub>* distance: set up **p = 0.5** and **z = 1.0** and apply standard Levy distribution.
 - General *l<sub>p</sub>* distance: set up **0 < p ⩽ 2** and **-1 ⩽ z ⩽ 1**.
 
-```c``` is the approximation ratio for *c*-ANNS. We often set **c = 2.0**. But if the dataset is easy, it is also satisfied to set **c = 3.0**.
+```c``` is the approximation ratio for *c*-ANNS. We set **c = 2.0** by default. If the dataset is easy, it is also satisfied to set **c = 3.0**.
 
 ## Reference
 
-Please use the following bibtexes to cite this work when you use **QALSH_Mem** in your paper.
+Please use the following BibTex to cite this work if you use **QALSH_Mem** for publications.
 
 ```tex
 @article{huang2017query,
