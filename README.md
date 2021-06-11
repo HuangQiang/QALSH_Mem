@@ -21,6 +21,8 @@ We study the performance of QALSH and QALSH<sup>+</sup> over six real-life [data
 | Sift     | 1,000,000    | 100      | 128            | [0, 255]    | uint8     |
 | Sift10M  | 10,000,000   | 100      | 128            | [0, 255]    | uint8     |
 
+Note that all the datasets and queries are in a binary format, which can be considered as an array of `n·d` coordinates, where each coordinate is specified by the data type, e.g., `uint8` or `uint16`. We currently support four data types: `uint8`, `uint16`, `int32`, and `float32`. One can determine the data type of the dataset based on the range of its coordinates. If you want to support more data types, you can update the interface in the `main.cc` and re-compile the package.
+
 ## Compilation
 
 The package requires `g++` with `c++11` support. To download and compile the c++ source codes, please run the commands as follows:
