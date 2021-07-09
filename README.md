@@ -8,8 +8,6 @@ This package provides the internal memory implementations of two LSH schemes QAL
 
 If you want to get more details of QALSH and QALSH<sup>+</sup>, please refer to our works [Query-Aware Locality-Sensitive Hashing for Approximate Nearest Neighbor Search](https://dl.acm.org/doi/abs/10.14778/2850469.2850470) and [Query-Aware Locality-Sensitive Hashing Scheme for *l<sub>p</sub>* Norm](https://link.springer.com/article/10.1007/s00778-017-0472-7), which have been published in PVLDB 2015 and VLDBJ 2017, respectively.
 
-<p align="center"><img src="imgs/query-aware-virtual-rehashing.jpg" alt="drawing" width="500"/></p>
-
 ## Datasets and Queries
 
 We study the performance of QALSH and QALSH<sup>+</sup> over six real-life [datasets](https://drive.google.com/drive/folders/1tKMl0_iLSEeuT1ZJ7s4x1BbLHyX0D5OJ), i.e., Mnist, P53, Trevi, Gist, Sift, and Sift10M. For each dataset, we provide 100 queries (randomly select from its test set or extract from the dataset itself) for evaluations. The statistics of datasets and queries are summarized as follows.
@@ -30,7 +28,7 @@ Note that all the datasets and queries are in a binary format, which can be cons
 The package requires `g++` with `c++11` support. To download and compile the c++ source codes, please run the commands as follows:
 
 ```bash
-git clone https://github.com/HuangQiang/QALSH_Mem.git
+git clone git@github.com/HuangQiang/QALSH_Mem.git
 cd QALSH_Mem/methods/
 make -j
 ```
